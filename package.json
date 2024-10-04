@@ -1,5 +1,5 @@
 {
-  "name": "@tilda/cli",
+  "name": "@tildacloud/cli",
   "description": "A new CLI generated with oclif",
   "version": "0.0.0",
   "author": "Tilda",

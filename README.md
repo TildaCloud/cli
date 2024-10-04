@@ -1,12 +1,12 @@
-@tilda/cli
+@tildacloud/cli
 =================
 
 A new CLI generated with oclif
 
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/@tilda/cli.svg)](https://npmjs.org/package/@tilda/cli)
-[![Downloads/week](https://img.shields.io/npm/dw/@tilda/cli.svg)](https://npmjs.org/package/@tilda/cli)
+[![Version](https://img.shields.io/npm/v/@tildacloud/cli.svg)](https://npmjs.org/package/@tildacloud/cli)
+[![Downloads/week](https://img.shields.io/npm/dw/@tildacloud/cli.svg)](https://npmjs.org/package/@tildacloud/cli)
 
 
 <!-- toc -->
@@ -16,11 +16,11 @@ A new CLI generated with oclif
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g @tilda/cli
+$ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tilda/cli/0.0.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.0.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
