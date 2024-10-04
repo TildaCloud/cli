@@ -147,7 +147,7 @@ export default class Hello extends Command {
         // write build metadata to .tilda directory
         const metadataFilePath = path.join(tildaDirPath, 'metadata.json');
 
-        console.log('metadataFilePath', metadataFilePath);
+        this.debug('metadataFilePath', metadataFilePath);
 
         const [errorWithWritingMetadata] = await safely(fs.writeFile(metadataFilePath, JSON.stringify(buildMetaData, null, 2)));
         if (errorWithWritingMetadata) {
