@@ -1,11 +1,6 @@
-export async function safely<T, E = Error>(fnOrPromise: Promise<T> | (() => T)): Promise<[E, undefined] | [undefined, T]> {
+export async function safely<T, E = Error>(fnOrPromise: (() => T) | Promise<T>): Promise<[E, undefined] | [undefined, T]> {
     try {
-        let result: T;
-        if (typeof fnOrPromise === 'function') {
-            result = fnOrPromise();
-        } else {
-            result = await fnOrPromise;
-        }
+        const result: T = typeof fnOrPromise === 'function' ? fnOrPromise() : (await fnOrPromise);
         return [undefined, result];
     } catch (error) {
         return [error as E, undefined];
