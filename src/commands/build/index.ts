@@ -5,7 +5,7 @@ import {nodeFileTrace} from '@vercel/nft';
 import AdmnZip from 'adm-zip';
 import {safely} from "../../lib/utils.js";
 
-export default class Hello extends Command {
+export default class Build extends Command {
     static description = 'Build the application'
 
     static flags = {
@@ -16,7 +16,7 @@ export default class Hello extends Command {
     }
 
     async run(): Promise<void> {
-        const {args, flags} = await this.parse(Hello)
+        const {args, flags} = await this.parse(Build)
 
         const projectDirPath = path.resolve(flags.projectDir);
         const serverDirPath = path.resolve(flags.serverDir);
