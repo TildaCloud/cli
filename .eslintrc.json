@@ -10,6 +10,7 @@
     "no-promise-executor-return": "off",
     "no-constant-condition": "warn",
     "no-undef-init": "warn",
+    "prefer-destructuring": "off",
     "no-async-promise-executor": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/ban-ts-comment": "warn"

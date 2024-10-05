@@ -17,7 +17,7 @@ export const getTrpcClient = (origin: string, privateKey: crypto.KeyObject, keyI
                 url: new URL('/api/', origin).toString(),
                 async fetch(...params) {
                     const request = new Request(...params);
-                    const requestBody = Buffer.from(await request.arrayBuffer());
+                    const requestBody = request.body ? Buffer.from(await request.arrayBuffer()) : Buffer.from([]);
 
                     // hash SHA256 of request body
                     const bodyHash = crypto.createHash('SHA256')
@@ -63,7 +63,13 @@ export const getTrpcClient = (origin: string, privateKey: crypto.KeyObject, keyI
                         sig1: new ParamBuffer(signatureBase64),
                     }));
 
-                    return fetch(request);
+                    return fetch(new Request(request.url, {
+                        method: request.method,
+                        headers: request.headers,
+                        body: request.body ? requestBody : undefined,
+                        signal: request.signal,
+                        redirect: request.redirect,
+                    }));
                 }
             }),
         ],
