@@ -26,9 +26,9 @@ export default class Login extends BaseCommand<typeof Login> {
         const {args, flags, argv} = await this.parse(Login)
 
 
-        if (this.tildaConfig.v1.identity) {
+        if (this.identity) {
             // check if private key exists for this user
-            const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
+            const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), this.identity.userId, 'pem'].join('.'));
             const [errorWithStatOfPrivateKey, privateKeyStats] = await safely<Awaited<ReturnType<typeof fs.stat>>, {
                 code: 'ENOENT',
                 message: string
@@ -47,17 +47,17 @@ export default class Login extends BaseCommand<typeof Login> {
                 }
 
                 // remove identity from config
-                const {v1: {identity, ...config}} = this.tildaConfig;
-                await this.updateTildaConfig({v1: config});
+                const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+                await this.updateTildaConfig(newConfig);
             }
         }
 
-        if (this.tildaConfig.v1.identity) {
-            this.log(format("You're logged in as", this.tildaConfig.v1.identity.userName, '. Run `tilda logout` to log out.'));
+        if (this.identity) {
+            this.log(format("You're logged in as", this.identity.userName, '. Run `tilda logout` to log out.'));
             return;
         }
 
-        this.log('Generating public private key pair...');
+        this.log('Generating key pair for signing...');
 
         // create private public key pair
         const {publicKey, privateKey} = crypto.generateKeyPairSync('ec', {namedCurve: 'secp256k1'});
@@ -119,7 +119,7 @@ export default class Login extends BaseCommand<typeof Login> {
         }
 
         const privateKeyPem = privateKey.export({type: 'pkcs8', format: 'pem'}).toString();
-        const privateKeyPath = path.resolve(this.config.configDir, me.id + '.pem');
+        const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), me.id, 'pem'].join('.'));
 
         const [errorWithWritingPrivateKey, privateKeyWriteResult] = await safely(fs.writeFile(privateKeyPath, privateKeyPem, {
             mode: 0o600,
@@ -130,16 +130,14 @@ export default class Login extends BaseCommand<typeof Login> {
 
         this.debug(`Private key written to: ${privateKeyPath}`);
 
-        await this.updateTildaConfig({
-            v1: {
-                ...this.tildaConfig.v1,
-                identity: {
-                    keyId: publicKeyId,
-                    userId: me.id,
-                    userName: me.name,
-                }
-            }
-        });
+        const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+        newConfig.v1.identities[flags.apiOrigin] = {
+            keyId: publicKeyId,
+            userId: me.id,
+            userName: me.name,
+        }
+
+        await this.updateTildaConfig(newConfig);
 
         this.log(format("You're logged in as", me.name));
     }

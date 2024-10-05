@@ -21,16 +21,14 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
     async run(): Promise<void> {
         const {args, flags, argv} = await this.parse(Deploy)
 
-        if (!this.tildaConfig.v1.identity) {
-            this.error({
-                name: 'NOT_LOGGED_IN',
-                message: 'You are not logged in'
+        if (!this.identity) {
+            this.error('You are not logged in', {
+                code: 'NOT_LOGGED_IN',
             })
         }
         if (!this.apiClient) {
-            this.error({
-                name: 'API_CLIENT_NOT_INITIALIZED',
-                message: 'API client not initialized'
+            this.error('API client not initialized', {
+                code: 'API_CLIENT_NOT_INITIALIZED'
             })
         }
 

@@ -32,6 +32,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     protected args!: Args<T>
     protected tildaConfig!: z.infer<typeof CliConfigSchema>
     protected apiClient?: ReturnType<typeof createTRPCClient<AppRouter>>
+    protected identity?: z.infer<typeof CliConfigSchema>['v1']['identities'][string]
 
     public async init(): Promise<void> {
         await super.init()
@@ -67,7 +68,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
             // create config file
             const defaultConfig: z.infer<typeof CliConfigSchema> = {
-                v1: {}
+                v1: {identities: {}}
             }
             await this.updateTildaConfig(defaultConfig)
         }
@@ -90,11 +91,14 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             this.error(`Error getting config: ${errorWithGettingConfig.message}`);
         }
 
-        this.tildaConfig = config
+        this.tildaConfig = Object.freeze(config);
 
-        if (this.tildaConfig.v1.identity) {
+        const identity = this.tildaConfig.v1.identities[this.flags.apiOrigin];
+        this.identity = Object.freeze(identity);
+
+        if (identity) {
             // read the private key
-            const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
+            const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), identity.userId, 'pem'].join('.'));
 
             const [errorWithReadingPrivateKey, privateKeyPemContents] = await safely(fs.readFile(privateKeyPath, 'utf8'));
             if (errorWithReadingPrivateKey) {
@@ -107,8 +111,9 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
                 }
 
                 // remove identity from config
-                const {v1: {identity, ...config}} = this.tildaConfig;
-                await this.updateTildaConfig({v1: config});
+                const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+                delete newConfig.v1.identities[this.flags.apiOrigin];
+                await this.updateTildaConfig(newConfig);
                 return;
             }
 
@@ -126,14 +131,14 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
                 }
 
                 // remove identity from config
-                const {v1: {identity, ...config}} = this.tildaConfig;
-                await this.updateTildaConfig({v1: config});
-
+                const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+                delete newConfig.v1.identities[this.flags.apiOrigin];
+                await this.updateTildaConfig(newConfig);
                 return;
             }
 
             // revoke the key
-            const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, this.tildaConfig.v1.identity.keyId);
+            const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, identity.keyId);
             this.apiClient = trpcClient
         }
     }
@@ -146,6 +151,11 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
         }
 
         this.tildaConfig = config
+
+        // update identity
+        const identity = config.v1.identities[this.flags.apiOrigin];
+        this.identity = Object.freeze(identity);
+
         return config
     }
 }

@@ -27,30 +27,32 @@ export default class Logout extends BaseCommand<typeof Logout> {
     async run(): Promise<void> {
         const {args, flags, argv} = await this.parse(Logout)
 
-        if (!this.tildaConfig.v1.identity) {
+        if (!this.identity) {
             this.log('You are not logged in');
             return;
         }
 
-        this.debug(format("Logging out", this.tildaConfig.v1.identity.userName));
+        this.debug(format("Logging out", this.identity.userName));
 
         if (!this.apiClient) {
-            this.error({
-                name: 'API_CLIENT_NOT_INITIALIZED',
-                message: 'API client not initialized'
+            this.error('API client not initialized', {
+                code: 'API_CLIENT_NOT_INITIALIZED',
             })
         }
 
         const [errorWithRevokingKey, response] = await safely(this.apiClient.deletePublicKey.mutate({
-            publicKeyId: this.tildaConfig.v1.identity.keyId,
+            publicKeyId: this.identity.keyId,
         }));
         if (errorWithRevokingKey && !flags.force) {
-            this.error(format('Error revoking key:', errorWithRevokingKey.message, '. Use --force to ignore this error.'));
+            this.error(format('Error revoking key:', errorWithRevokingKey.message), {
+                code: 'ERROR_REVOKING_KEY',
+                suggestions: ['Use --force to ignore this error.']
+            });
         }
 
         this.debug('Revoked key', response);
 
-        const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
+        const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), this.identity.userId, 'pem'].join('.'));
 
         // remove private key file
         const [errorWithRemovingPrivateKey] = await safely(fs.rm(privateKeyPath));
@@ -58,11 +60,12 @@ export default class Logout extends BaseCommand<typeof Logout> {
             this.warn(`Error removing private key file: ${errorWithRemovingPrivateKey.message}`);
         }
 
-        const userName = this.tildaConfig.v1.identity.userName;
+        const userName = this.identity.userName;
 
         // remove identity from config
-        const {v1: {identity, ...config}} = this.tildaConfig;
-        await this.updateTildaConfig({v1: config});
+        const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+        delete newConfig.v1.identities[this.flags.apiOrigin];
+        await this.updateTildaConfig(newConfig);
 
         this.log(format('Logged out', userName));
     }
