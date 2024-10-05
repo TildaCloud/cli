@@ -3,9 +3,15 @@
   "rules": {
     "perfectionist/sort-objects": "off",
     "perfectionist/sort-imports": "off",
+    "perfectionist/sort-union-types": "off",
     "perfectionist/sort-object-types": "off",
     "padding-line-between-statements": "off",
     "no-await-in-loop": "warn",
-    "@typescript-eslint/no-unused-vars": "warn"
+    "no-promise-executor-return": "off",
+    "no-constant-condition": "warn",
+    "no-undef-init": "warn",
+    "no-async-promise-executor": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn"
   }
 }

@@ -11,8 +11,10 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
+    "@trpc/client": "^11.0.0-rc.477",
     "@vercel/nft": "^0.27.4",
-    "adm-zip": "^0.5.16"
+    "adm-zip": "^0.5.16",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
