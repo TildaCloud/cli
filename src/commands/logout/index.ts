@@ -34,49 +34,14 @@ export default class Logout extends BaseCommand<typeof Logout> {
 
         this.debug(format("Logging out", this.tildaConfig.v1.identity.userName));
 
-        // read the private key
-        const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
-
-        const [errorWithReadingPrivateKey, privateKeyPemContents] = await safely(fs.readFile(privateKeyPath, 'utf8'));
-        if (errorWithReadingPrivateKey) {
-            this.warn(`Error reading private key: ${errorWithReadingPrivateKey.message}`);
-
-            // remove private key file
-            const [errorWithRemovingPrivateKey] = await safely(fs.rm(privateKeyPath));
-            if (errorWithRemovingPrivateKey) {
-                this.warn(`Error removing private key file: ${errorWithRemovingPrivateKey.message}`);
-            }
-
-            // remove identity from config
-            const {v1: {identity, ...config}} = this.tildaConfig;
-            await this.updateTildaConfig({v1: config});
-            return;
+        if (!this.apiClient) {
+            this.error({
+                name: 'API_CLIENT_NOT_INITIALIZED',
+                message: 'API client not initialized'
+            })
         }
 
-        const [errorParsingPrivateKey, privateKey] = await safely(() => crypto.createPrivateKey({
-            key: privateKeyPemContents,
-            format: 'pem'
-        }));
-        if (errorParsingPrivateKey) {
-            this.warn(`Error parsing private key: ${errorParsingPrivateKey.message}`);
-
-            // remove private key file
-            const [errorWithRemovingPrivateKey] = await safely(fs.rm(privateKeyPath));
-            if (errorWithRemovingPrivateKey) {
-                this.warn(`Error removing private key file: ${errorWithRemovingPrivateKey.message}`);
-            }
-
-            // remove identity from config
-            const {v1: {identity, ...config}} = this.tildaConfig;
-            await this.updateTildaConfig({v1: config});
-
-            return;
-        }
-
-        // revoke the key
-        const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, this.tildaConfig.v1.identity.keyId);
-
-        const [errorWithRevokingKey, response] = await safely(trpcClient.deletePublicKey.mutate({
+        const [errorWithRevokingKey, response] = await safely(this.apiClient.deletePublicKey.mutate({
             publicKeyId: this.tildaConfig.v1.identity.keyId,
         }));
         if (errorWithRevokingKey && !flags.force) {
@@ -84,6 +49,8 @@ export default class Logout extends BaseCommand<typeof Logout> {
         }
 
         this.debug('Revoked key', response);
+
+        const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
 
         // remove private key file
         const [errorWithRemovingPrivateKey] = await safely(fs.rm(privateKeyPath));

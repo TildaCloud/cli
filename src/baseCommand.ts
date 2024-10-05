@@ -1,9 +1,15 @@
 import {Command, Flags, Interfaces} from '@oclif/core'
+import * as crypto from "node:crypto";
 import path from "node:path";
 import {safely} from "./lib/utils.js";
 import fs from "node:fs/promises";
 import {z} from "zod";
 import {CliConfigSchema} from "./lib/schemas.js";
+import {createTRPCClient} from "@trpc/client";
+// @ts-ignore: TS6059
+// eslint-disable-next-line import/no-unresolved
+import {AppRouter} from "@site/src/routes/api/[any]/router.js";
+import {getTrpcClient} from "./lib/api.js";
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<typeof BaseCommand['baseFlags'] & T['flags']>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
@@ -25,6 +31,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     protected flags!: Flags<T>
     protected args!: Args<T>
     protected tildaConfig!: z.infer<typeof CliConfigSchema>
+    protected apiClient?: ReturnType<typeof createTRPCClient<AppRouter>>
 
     public async init(): Promise<void> {
         await super.init()
@@ -84,6 +91,51 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
         }
 
         this.tildaConfig = config
+
+        if (this.tildaConfig.v1.identity) {
+            // read the private key
+            const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
+
+            const [errorWithReadingPrivateKey, privateKeyPemContents] = await safely(fs.readFile(privateKeyPath, 'utf8'));
+            if (errorWithReadingPrivateKey) {
+                this.warn(`Error reading private key: ${errorWithReadingPrivateKey.message}`);
+
+                // remove private key file
+                const [errorWithRemovingPrivateKey] = await safely(fs.rm(privateKeyPath));
+                if (errorWithRemovingPrivateKey) {
+                    this.warn(`Error removing private key file: ${errorWithRemovingPrivateKey.message}`);
+                }
+
+                // remove identity from config
+                const {v1: {identity, ...config}} = this.tildaConfig;
+                await this.updateTildaConfig({v1: config});
+                return;
+            }
+
+            const [errorParsingPrivateKey, privateKey] = await safely(() => crypto.createPrivateKey({
+                key: privateKeyPemContents,
+                format: 'pem'
+            }));
+            if (errorParsingPrivateKey) {
+                this.warn(`Error parsing private key: ${errorParsingPrivateKey.message}`);
+
+                // remove private key file
+                const [errorWithRemovingPrivateKey] = await safely(fs.rm(privateKeyPath));
+                if (errorWithRemovingPrivateKey) {
+                    this.warn(`Error removing private key file: ${errorWithRemovingPrivateKey.message}`);
+                }
+
+                // remove identity from config
+                const {v1: {identity, ...config}} = this.tildaConfig;
+                await this.updateTildaConfig({v1: config});
+
+                return;
+            }
+
+            // revoke the key
+            const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, this.tildaConfig.v1.identity.keyId);
+            this.apiClient = trpcClient
+        }
     }
 
     public async updateTildaConfig(config: z.infer<typeof CliConfigSchema>): Promise<z.infer<typeof CliConfigSchema>> {
