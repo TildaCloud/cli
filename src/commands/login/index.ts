@@ -12,75 +12,23 @@ import {createTRPCClient, httpBatchLink} from "@trpc/client";
 // eslint-disable-next-line import/no-unresolved
 import {AppRouter} from "@site/src/routes/api/[any]/router.js";
 import {CliConfigSchema} from "../../lib/schemas.js";
+import {BaseCommand} from "../../baseCommand.js";
 
 const EnvXdgConfigHome = process.env.XDG_CONFIG_HOME!;
 const EnvHome = process.env.HOME!;
 
-export default class Login extends Command {
+export default class Login extends BaseCommand<typeof Login> {
     static description = 'Log in to Tilda'
 
-    static flags = {
-        apiOrigin: Flags.string({description: 'API origin', required: true, env: 'TILDA_CLI_API_ORIGIN'}),
-    }
+    static flags = {}
 
     async run(): Promise<void> {
         const {args, flags, argv} = await this.parse(Login)
 
-        const defaultSystemConfigDirPath = path.join(EnvHome, '.config');
-        const systemConfigDirPath = EnvXdgConfigHome || defaultSystemConfigDirPath;
-        const tildaConfigDirPath = path.resolve(systemConfigDirPath, 'tilda');
 
-        const tildaConfigFilePath = path.resolve(tildaConfigDirPath, 'config.json');
-
-        // Load config
-        const [errorWithStatOfConfig, configStats] = await safely<Awaited<ReturnType<typeof fs.stat>>, {
-            code: 'ENOENT',
-            message: string
-        }>(fs.stat(tildaConfigFilePath));
-        if (errorWithStatOfConfig) {
-            if (errorWithStatOfConfig.code !== 'ENOENT') {
-                this.error(`Error checking config file: ${errorWithStatOfConfig.message}`);
-            }
-
-            // create config directory
-            const [errorWithCreatingConfigDir] = await safely(fs.mkdir(tildaConfigDirPath, {
-                recursive: true,
-            }));
-            if (errorWithCreatingConfigDir) {
-                this.error(`Error creating config directory: ${errorWithCreatingConfigDir.message}`);
-            }
-
-            // create config file
-            const defaultConfig: z.infer<typeof CliConfigSchema> = {
-                v1: {}
-            }
-            const [errorWithCreatingConfigFile] = await safely(fs.writeFile(tildaConfigFilePath, JSON.stringify(defaultConfig, null, 2)));
-            if (errorWithCreatingConfigFile) {
-                this.error(`Error creating config file: ${errorWithCreatingConfigFile.message}`);
-            }
-        }
-        if (configStats && !configStats.isFile()) {
-            this.error(`Config is not a valid file: ${tildaConfigFilePath}`);
-        }
-
-        const [errorWithReadingConfig, configFileContents] = await safely(fs.readFile(tildaConfigFilePath, 'utf8'));
-        if (errorWithReadingConfig) {
-            this.error(`Error reading config file: ${errorWithReadingConfig.message}`);
-        }
-
-        const [errorWithJsonParsingConfig, configFileJson] = await safely(() => JSON.parse(configFileContents));
-        if (errorWithJsonParsingConfig) {
-            this.error(`Error parsing config file: ${errorWithJsonParsingConfig.message}`);
-        }
-
-        const [errorWithGettingConfig, config] = await safely(CliConfigSchema.parseAsync(configFileJson));
-        if (errorWithGettingConfig) {
-            this.error(`Error getting config: ${errorWithGettingConfig.message}`);
-        }
-
-        if (config.v1.identity) {
+        if (this.tildaConfig.v1.identity) {
             // check if private key exists for this user
-            const privateKeyPath = path.resolve(tildaConfigDirPath, config.v1.identity.userId + '.pem');
+            const privateKeyPath = path.resolve(this.config.configDir, this.tildaConfig.v1.identity.userId + '.pem');
             const [errorWithStatOfPrivateKey, privateKeyStats] = await safely<Awaited<ReturnType<typeof fs.stat>>, {
                 code: 'ENOENT',
                 message: string
@@ -99,16 +47,13 @@ export default class Login extends Command {
                 }
 
                 // remove identity from config
-                delete config.v1.identity;
-                const [errorWithWritingConfig, configWriteResult] = await safely(fs.writeFile(tildaConfigFilePath, JSON.stringify(config, null, 2)));
-                if (errorWithWritingConfig) {
-                    this.error(`Error writing config: ${errorWithWritingConfig.message}`);
-                }
+                const {v1: {identity, ...config}} = this.tildaConfig;
+                await this.updateTildaConfig({v1: config});
             }
         }
 
-        if (config.v1.identity) {
-            this.log(format("You're logged in as", config.v1.identity.userName, '. Run `tilda logout` to log out.'));
+        if (this.tildaConfig.v1.identity) {
+            this.log(format("You're logged in as", this.tildaConfig.v1.identity.userName, '. Run `tilda logout` to log out.'));
             return;
         }
 
@@ -174,7 +119,7 @@ export default class Login extends Command {
         }
 
         const privateKeyPem = privateKey.export({type: 'pkcs8', format: 'pem'}).toString();
-        const privateKeyPath = path.resolve(tildaConfigDirPath, me.id + '.pem');
+        const privateKeyPath = path.resolve(this.config.configDir, me.id + '.pem');
 
         const [errorWithWritingPrivateKey, privateKeyWriteResult] = await safely(fs.writeFile(privateKeyPath, privateKeyPem, {
             mode: 0o600,
@@ -185,16 +130,16 @@ export default class Login extends Command {
 
         this.debug(`Private key written to: ${privateKeyPath}`);
 
-        config.v1.identity = {
-            keyId: publicKeyId,
-            userId: me.id,
-            userName: me.name,
-        }
-
-        const [errorWithWritingConfig, configWriteResult] = await safely(fs.writeFile(tildaConfigFilePath, JSON.stringify(config, null, 2)));
-        if (errorWithWritingConfig) {
-            this.error(`Error writing config: ${errorWithWritingConfig.message}`);
-        }
+        await this.updateTildaConfig({
+            v1: {
+                ...this.tildaConfig.v1,
+                identity: {
+                    keyId: publicKeyId,
+                    userId: me.id,
+                    userName: me.name,
+                }
+            }
+        });
 
         this.log(format("You're logged in as", me.name));
     }

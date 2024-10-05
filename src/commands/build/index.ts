@@ -4,8 +4,9 @@ import * as fs from 'node:fs/promises';
 import {nodeFileTrace} from '@vercel/nft';
 import AdmnZip from 'adm-zip';
 import {safely} from "../../lib/utils.js";
+import {BaseCommand} from "../../baseCommand.js";
 
-export default class Build extends Command {
+export default class Build extends BaseCommand<typeof Build> {
     static description = 'Build the application'
 
     static flags = {

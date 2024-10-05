@@ -5,6 +5,8 @@
     "perfectionist/sort-imports": "off",
     "perfectionist/sort-union-types": "off",
     "perfectionist/sort-object-types": "off",
+    "perfectionist/sort-classes": "off",
+    "perfectionist/sort-intersection-types": "off",
     "padding-line-between-statements": "off",
     "no-await-in-loop": "warn",
     "no-promise-executor-return": "off",
@@ -13,6 +15,7 @@
     "prefer-destructuring": "off",
     "no-async-promise-executor": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
-    "@typescript-eslint/ban-ts-comment": "warn"
+    "@typescript-eslint/ban-ts-comment": "warn",
+    "unicorn/filename-case": "off"
   }
 }
