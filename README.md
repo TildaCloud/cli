@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.1.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.2.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -29,9 +29,11 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`tilda hello PERSON`](#tilda-hello-person)
-* [`tilda hello world`](#tilda-hello-world)
+* [`tilda build`](#tilda-build)
+* [`tilda deploy`](#tilda-deploy)
 * [`tilda help [COMMAND]`](#tilda-help-command)
+* [`tilda login`](#tilda-login)
+* [`tilda logout`](#tilda-logout)
 * [`tilda plugins`](#tilda-plugins)
 * [`tilda plugins add PLUGIN`](#tilda-plugins-add-plugin)
 * [`tilda plugins:inspect PLUGIN...`](#tilda-pluginsinspect-plugin)
@@ -43,47 +45,42 @@ USAGE
 * [`tilda plugins unlink [PLUGIN]`](#tilda-plugins-unlink-plugin)
 * [`tilda plugins update`](#tilda-plugins-update)
 
-## `tilda hello PERSON`
+## `tilda build`
 
-Say hello
+Build the application
 
 ```
 USAGE
-  $ tilda hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
+  $ tilda build --serverDir <value> --staticDir <value> --projectDir <value> --serverEntryFile <value>
 
 FLAGS
-  -f, --from=<value>  (required) Who is saying hello
+  --projectDir=<value>       (required) Relative path project directory
+  --serverDir=<value>        (required) Relative path to server files directory
+  --serverEntryFile=<value>  (required) Relative path to server entry file
+  --staticDir=<value>        (required) Relative path to static files directory
 
 DESCRIPTION
-  Say hello
-
-EXAMPLES
-  $ tilda hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
+  Build the application
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/TildaCloud/cli/blob/v0.1.0/src/commands/hello/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.2.0/src/commands/build/index.ts)_
 
-## `tilda hello world`
+## `tilda deploy`
 
-Say hello world
+Build the application
 
 ```
 USAGE
-  $ tilda hello world
+  $ tilda deploy --apiOrigin <value>
+
+FLAGS
+  --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
 
 DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ tilda hello world
-  hello world! (./src/commands/hello/world.ts)
+  Build the application
 ```
 
-_See code: [src/commands/hello/world.ts](https://github.com/TildaCloud/cli/blob/v0.1.0/src/commands/hello/world.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.2.0/src/commands/deploy/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -104,6 +101,41 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.13/src/commands/help.ts)_
+
+## `tilda login`
+
+Log in to Tilda
+
+```
+USAGE
+  $ tilda login --apiOrigin <value>
+
+FLAGS
+  --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
+
+DESCRIPTION
+  Log in to Tilda
+```
+
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.2.0/src/commands/login/index.ts)_
+
+## `tilda logout`
+
+Log in to Tilda
+
+```
+USAGE
+  $ tilda logout --apiOrigin <value> [--force]
+
+FLAGS
+  --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
+  --force              Force logout
+
+DESCRIPTION
+  Log in to Tilda
+```
+
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.2.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
