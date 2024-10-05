@@ -99,7 +99,6 @@ export default class Login extends BaseCommand<typeof Login> {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;
             }
-            this.log(receivedPublicKeyId);
             publicKeyId = receivedPublicKeyId;
             break;
         } while (true)
