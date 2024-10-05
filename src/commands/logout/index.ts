@@ -63,7 +63,7 @@ export default class Logout extends BaseCommand<typeof Logout> {
         const userName = this.identity.userName;
 
         // remove identity from config
-        const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+        const newConfig = structuredClone(this.tildaConfig);
         delete newConfig.v1.identities[this.flags.apiOrigin];
         await this.updateTildaConfig(newConfig);
 

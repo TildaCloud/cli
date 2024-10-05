@@ -111,7 +111,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
                 }
 
                 // remove identity from config
-                const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+                const newConfig = structuredClone(this.tildaConfig);
                 delete newConfig.v1.identities[this.flags.apiOrigin];
                 await this.updateTildaConfig(newConfig);
                 return;
@@ -131,7 +131,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
                 }
 
                 // remove identity from config
-                const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+                const newConfig = structuredClone(this.tildaConfig);
                 delete newConfig.v1.identities[this.flags.apiOrigin];
                 await this.updateTildaConfig(newConfig);
                 return;

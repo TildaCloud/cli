@@ -25,7 +25,6 @@ export default class Login extends BaseCommand<typeof Login> {
     async run(): Promise<void> {
         const {args, flags, argv} = await this.parse(Login)
 
-
         if (this.identity) {
             // check if private key exists for this user
             const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), this.identity.userId, 'pem'].join('.'));
@@ -47,7 +46,8 @@ export default class Login extends BaseCommand<typeof Login> {
                 }
 
                 // remove identity from config
-                const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+                const newConfig = structuredClone(this.tildaConfig);
+                delete newConfig.v1.identities[flags.apiOrigin];
                 await this.updateTildaConfig(newConfig);
             }
         }
@@ -130,7 +130,7 @@ export default class Login extends BaseCommand<typeof Login> {
 
         this.debug(`Private key written to: ${privateKeyPath}`);
 
-        const newConfig = JSON.parse(JSON.stringify(this.tildaConfig));
+        const newConfig = structuredClone(this.tildaConfig);
         newConfig.v1.identities[flags.apiOrigin] = {
             keyId: publicKeyId,
             userId: me.id,
