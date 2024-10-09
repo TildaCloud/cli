@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.3.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.4.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -51,19 +51,24 @@ Build the application
 
 ```
 USAGE
-  $ tilda build --serverDir <value> --staticDir <value> --projectDir <value> --serverEntryFile <value>
+  $ tilda build --apiOrigin <value> --serverDir <value> --staticDir <value> --projectDir <value>
+    --serverEntryFile <value> [--json]
 
 FLAGS
+  --apiOrigin=<value>        (required) [default: https://tilda.net] API origin
   --projectDir=<value>       (required) Relative path project directory
   --serverDir=<value>        (required) Relative path to server files directory
   --serverEntryFile=<value>  (required) Relative path to server entry file
   --staticDir=<value>        (required) Relative path to static files directory
 
+GLOBAL FLAGS
+  --json  Format output as json.
+
 DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.3.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.4.0/src/commands/build/index.ts)_
 
 ## `tilda deploy`
 
@@ -71,16 +76,24 @@ Build the application
 
 ```
 USAGE
-  $ tilda deploy --apiOrigin <value>
+  $ tilda deploy --apiOrigin <value> --projectDir <value> --projectId <value> --serviceId <value> --runtime
+    <value> [--json]
 
 FLAGS
-  --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
+  --apiOrigin=<value>   (required) [default: https://tilda.net] API origin
+  --projectDir=<value>  (required) Relative path project directory
+  --projectId=<value>   (required) Project ID
+  --runtime=<value>     (required) Runtime
+  --serviceId=<value>   (required) Service ID
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.3.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.4.0/src/commands/deploy/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -108,16 +121,19 @@ Log in to Tilda
 
 ```
 USAGE
-  $ tilda login --apiOrigin <value>
+  $ tilda login --apiOrigin <value> [--json]
 
 FLAGS
   --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.3.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.4.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -125,17 +141,20 @@ Log in to Tilda
 
 ```
 USAGE
-  $ tilda logout --apiOrigin <value> [--force]
+  $ tilda logout --apiOrigin <value> [--json] [--force]
 
 FLAGS
   --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
   --force              Force logout
 
+GLOBAL FLAGS
+  --json  Format output as json.
+
 DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.3.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.4.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
