@@ -131,9 +131,10 @@ export default class Build extends BaseCommand<typeof Build> {
         if (errorWithCopyingDebugServerFiles) {
             this.error(`Error copying debug files for server: ${errorWithCopyingDebugServerFiles.message}`);
         }
-        const [errorWithCopyingDebugPackageJson] = await safely(fs.cp(path.join(projectDirPath, 'package.json'), path.join(tildaDebugDirPath, 'package.json')));
-        if (errorWithCopyingDebugPackageJson) {
-            this.error(`Error copying debug package.json: ${errorWithCopyingDebugPackageJson.message}`);
+
+        const [errorWithCopyingDebugPackageLockJson] = await safely(fs.cp(path.join(projectDirPath, 'package-lock.json'), path.join(tildaDebugDirPath, 'package-lock.json')));
+        if (errorWithCopyingDebugPackageLockJson) {
+            this.error(`Error copying debug package-lock.json: ${errorWithCopyingDebugPackageLockJson.message}`);
         }
 
         const buildMetaData: BuildMetadata = {
