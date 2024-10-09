@@ -11,7 +11,14 @@ export default class Build extends BaseCommand<typeof Build> {
 
     static flags = {
         serverDir: Flags.string({description: 'Relative path to server files directory', required: true}),
-        staticDir: Flags.string({description: 'Relative path to static files directory', required: true}),
+        rootStaticDir: Flags.string({
+            description: 'Relative path to static files directory that will be served from root (/)',
+            required: true
+        }),
+        underscoreNamedStaticDir: Flags.string({
+            description: 'Relative path to static files directory that will be served from relative path with "." replaced with "_"',
+            required: false
+        }),
         projectDir: Flags.string({description: 'Relative path project directory', required: true}),
         serverEntryFile: Flags.string({description: 'Relative path to server entry file', required: true}),
     }
@@ -21,7 +28,8 @@ export default class Build extends BaseCommand<typeof Build> {
 
         const projectDirPath = path.resolve(flags.projectDir);
         const serverDirPath = path.resolve(flags.serverDir);
-        const staticDirPath = path.resolve(flags.staticDir);
+        const rootStaticDirPath = path.resolve(flags.rootStaticDir);
+        const underscoreNamedStaticDirPath = flags.underscoreNamedStaticDir ? path.resolve(flags.underscoreNamedStaticDir) : undefined;
         const serverEntryFilePath = path.resolve(flags.serverEntryFile);
 
         // ensure the project directory exists
@@ -42,13 +50,24 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Server directory does not exist: ${serverDirPath}`);
         }
 
-        // ensure the static directory exists
-        const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(staticDirPath));
+        // ensure the root static directory exists
+        const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(rootStaticDirPath));
         if (errorWithCheckingStaticDirStats) {
             this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
         }
         if (!staticDirStats.isDirectory()) {
-            this.error(`Static directory does not exist: ${staticDirPath}`);
+            this.error(`Static directory does not exist: ${rootStaticDirPath}`);
+        }
+
+        // ensure the underscore named static directory exists
+        if (underscoreNamedStaticDirPath) {
+            const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(underscoreNamedStaticDirPath));
+            if (errorWithCheckingStaticDirStats) {
+                this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
+            }
+            if (!staticDirStats.isDirectory()) {
+                this.error(`Static directory does not exist: ${underscoreNamedStaticDirPath}`);
+            }
         }
 
         // ensure the server entry file exists
@@ -87,23 +106,36 @@ export default class Build extends BaseCommand<typeof Build> {
         const tildaBuildComputeDirPath = path.join(projectDirPath, '.tilda', 'compute');
         const tildaDebugDirPath = path.join(projectDirPath, '.tilda', 'debug');
 
-        this.debug('Copying static files directory');
-        const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(staticDirPath, tildaBuildStaticDirPath, {recursive: true}));
+        this.debug('Copying root static files directories');
+        const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {recursive: true}));
         if (errorWithCopyingStaticFilesDir) {
             this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
         }
+        if (underscoreNamedStaticDirPath) {
+            this.debug('Copying underscore named static files directories');
+            const dirName = path.relative(projectDirPath, underscoreNamedStaticDirPath).replace('.', '_');
+            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(underscoreNamedStaticDirPath, path.join(tildaBuildStaticDirPath, dirName), {recursive: true}));
+            if (errorWithCopyingStaticFilesDir) {
+                this.error(`Error copying underscore named static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+            }
+        }
+
         this.debug('Copying server files directory');
         const [errorWithCopyingServerFilesDir] = await safely(fs.cp(serverDirPath, tildaBuildComputeDirPath, {recursive: true}));
         if (errorWithCopyingServerFilesDir) {
             this.error(`Error copying server files directory: ${errorWithCopyingServerFilesDir.message}`);
         }
 
-        const staticDirPathRelativeToProjectDir = path.relative(projectDirPath, staticDirPath);
+        const staticDirPathsRelativeToProjectDir = path.relative(projectDirPath, rootStaticDirPath);
+        const underscoreNamedStaticDirPathRelativeToProjectDir = underscoreNamedStaticDirPath ? path.relative(projectDirPath, underscoreNamedStaticDirPath) : underscoreNamedStaticDirPath;
         const serverDirPathRelativeToProjectDir = path.relative(projectDirPath, serverDirPath);
 
         const entryFileDependencies = new Set<string>();
         for (const dependency of serverFileTrace.fileList) {
-            if (dependency.startsWith(staticDirPathRelativeToProjectDir + '/')) {
+            if (underscoreNamedStaticDirPathRelativeToProjectDir && dependency.startsWith(underscoreNamedStaticDirPathRelativeToProjectDir + '/')) {
+                continue;
+            }
+            if (dependency.startsWith(staticDirPathsRelativeToProjectDir + '/')) {
                 continue;
             }
             if (dependency.startsWith(serverDirPathRelativeToProjectDir + '/')) {
