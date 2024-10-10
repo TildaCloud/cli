@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.5.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.6.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -51,15 +51,18 @@ Build the application
 
 ```
 USAGE
-  $ tilda build --apiOrigin <value> --serverDir <value> --staticDir <value> --projectDir <value>
-    --serverEntryFile <value> [--json]
+  $ tilda build --apiOrigin <value> --serverDir <value> --rootStaticDir <value> --projectDir <value>
+    --serverEntryFile <value> [--json] [--underscoreNamedStaticDir <value>]
 
 FLAGS
-  --apiOrigin=<value>        (required) [default: https://tilda.net] API origin
-  --projectDir=<value>       (required) Relative path project directory
-  --serverDir=<value>        (required) Relative path to server files directory
-  --serverEntryFile=<value>  (required) Relative path to server entry file
-  --staticDir=<value>        (required) Relative path to static files directory
+  --apiOrigin=<value>                 (required) [default: https://tilda.net] API origin
+  --projectDir=<value>                (required) Relative path project directory
+  --rootStaticDir=<value>             (required) Relative path to static files directory that will be served from root
+                                      (/)
+  --serverDir=<value>                 (required) Relative path to server files directory
+  --serverEntryFile=<value>           (required) Relative path to server entry file
+  --underscoreNamedStaticDir=<value>  Relative path to static files directory that will be served from relative path
+                                      with "." replaced with "_"
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -68,7 +71,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.5.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/build/index.ts)_
 
 ## `tilda deploy`
 
@@ -93,7 +96,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.5.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/deploy/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -133,7 +136,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.5.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -154,7 +157,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.5.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
