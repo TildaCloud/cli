@@ -52,12 +52,12 @@ export const getTrpcClient = (origin: string, privateKey: crypto.KeyObject, keyI
                         .join('\n');
 
                     // sign signatureBase with privateKey
-                    const signature = crypto.createSign('SHA256')
+                    const signer = crypto.createSign('SHA256')
                         .update(signatureBase)
                         .end();
 
                     // get base64 encoded signature
-                    const signatureBase64 = signature.sign(privateKey);
+                    const signatureBase64 = signer.sign(privateKey);
 
                     request.headers.set('signature', encodeHeaderValueParams({
                         sig1: new ParamBuffer(signatureBase64),
