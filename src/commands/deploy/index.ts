@@ -1,10 +1,8 @@
-import {Args, Command, Flags} from '@oclif/core'
+import {Flags} from '@oclif/core'
 import {Blob} from 'node:buffer'
 import {FormData, fetch} from 'undici'
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
-import {nodeFileTrace} from '@vercel/nft';
-import AdmnZip from 'adm-zip';
 import {safely} from "../../lib/utils.js";
 import {BaseCommand} from "../../baseCommand.js";
 
@@ -13,8 +11,8 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
 
     static flags = {
         projectDir: Flags.string({description: 'Relative path project directory', required: true}),
-        projectId: Flags.integer({description: 'Project ID', required: true}),
-        serviceId: Flags.integer({description: 'Service ID', required: true}),
+        projectSlug: Flags.string({description: 'Project slug', required: true}),
+        serviceSlug: Flags.string({description: 'Service slug', required: true}),
         runtime: Flags.string({description: 'Runtime', required: true}),
     }
 
@@ -55,8 +53,8 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
         }
 
         const [errorWithPackageUrl, packageUploadUrlResponse] = await safely(this.apiClient.getComputeServicePackageUploadUrl.mutate({
-            projectId: flags.projectId,
-            serviceId: flags.serviceId,
+            projectSlug: flags.projectSlug,
+            serviceSlug: flags.serviceSlug,
             runtime: flags.runtime,
             packageFileSizeBytes: 0,
         }));
@@ -91,8 +89,8 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
 
         this.debug('Creating version');
         const [errorWithCreatingVersion, versionResponse] = await safely(this.apiClient.createComputeServiceVersion.mutate({
-            projectId: flags.projectId,
-            serviceId: flags.serviceId,
+            projectId: packageUploadUrlResponse.projectId,
+            serviceId: packageUploadUrlResponse.serviceId,
             uploadToken: packageUploadUrlResponse.uploadToken,
             runtime: flags.runtime,
         }));
