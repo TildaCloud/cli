@@ -212,13 +212,20 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const serverDir = path.resolve(projectDirPath, '.next/standalone');
         const serverEntryFile = path.resolve(serverDir, 'server.js');
         const rootStaticDir = path.resolve(projectDirPath, 'public');
+
+        // check if root static dir exists
+        const [errorWithRootStaticDirStats, rootStaticDirStats] = await safely<Stats, { code?: string, message?: string}>(fs.stat(rootStaticDir));
+        if (errorWithRootStaticDirStats && errorWithRootStaticDirStats.code !== 'ENOENT') {
+            this.error(`Error checking root static dir: ${errorWithRootStaticDirStats.message}`);
+        }
+
         const underscoreNamedStaticDir = path.resolve(projectDirPath, '.next/static');
         await BuildCommand.run([
             '--projectDir', projectDirPath,
             '--serverDir', serverDir,
             '--serverEntryFile', serverEntryFile,
-            '--rootStaticDir', rootStaticDir,
-            '--underscoreNamedStaticDir', underscoreNamedStaticDir
+            '--underscoreNamedStaticDir', underscoreNamedStaticDir,
+            ...(rootStaticDirStats?.isDirectory() ? ['--rootStaticDir', rootStaticDir] : [])
         ]);
     }
 

@@ -13,7 +13,7 @@ export default class Build extends BaseCommand<typeof Build> {
         serverDir: Flags.string({description: 'Relative path to server files directory', required: true}),
         rootStaticDir: Flags.string({
             description: 'Relative path to static files directory that will be served from root (/)',
-            required: true
+            required: false
         }),
         underscoreNamedStaticDir: Flags.string({
             description: 'Relative path to static files directory that will be served from relative path with "." replaced with "_"',
@@ -28,7 +28,7 @@ export default class Build extends BaseCommand<typeof Build> {
 
         const projectDirPath = path.resolve(flags.projectDir);
         const serverDirPath = path.resolve(flags.serverDir);
-        const rootStaticDirPath = path.resolve(flags.rootStaticDir);
+        const rootStaticDirPath = flags.rootStaticDir ? path.resolve(flags.rootStaticDir) : undefined;
         const underscoreNamedStaticDirPath = flags.underscoreNamedStaticDir ? path.resolve(flags.underscoreNamedStaticDir) : undefined;
         const serverEntryFilePath = path.resolve(flags.serverEntryFile);
 
@@ -50,13 +50,15 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Server directory does not exist: ${serverDirPath}`);
         }
 
-        // ensure the root static directory exists
-        const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(rootStaticDirPath));
-        if (errorWithCheckingStaticDirStats) {
-            this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
-        }
-        if (!staticDirStats.isDirectory()) {
-            this.error(`Static directory does not exist: ${rootStaticDirPath}`);
+        if (rootStaticDirPath) {
+            // ensure the root static directory exists
+            const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(rootStaticDirPath));
+            if (errorWithCheckingStaticDirStats) {
+                this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
+            }
+            if (!staticDirStats.isDirectory()) {
+                this.error(`Static directory does not exist: ${rootStaticDirPath}`);
+            }
         }
 
         // ensure the underscore named static directory exists
@@ -106,10 +108,12 @@ export default class Build extends BaseCommand<typeof Build> {
         const tildaBuildComputeDirPath = path.join(projectDirPath, '.tilda', 'compute');
         const tildaDebugDirPath = path.join(projectDirPath, '.tilda', 'debug');
 
-        this.debug('Copying root static files directories');
-        const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {recursive: true}));
-        if (errorWithCopyingStaticFilesDir) {
-            this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+        if (rootStaticDirPath) {
+            this.debug('Copying root static files directories');
+            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {recursive: true}));
+            if (errorWithCopyingStaticFilesDir) {
+                this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+            }
         }
         if (underscoreNamedStaticDirPath) {
             this.debug('Copying underscore named static files directories');
@@ -126,7 +130,7 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Error copying server files directory: ${errorWithCopyingServerFilesDir.message}`);
         }
 
-        const staticDirPathsRelativeToProjectDir = path.relative(projectDirPath, rootStaticDirPath);
+        const staticDirPathsRelativeToProjectDir = rootStaticDirPath ? path.relative(projectDirPath, rootStaticDirPath) : undefined;
         const underscoreNamedStaticDirPathRelativeToProjectDir = underscoreNamedStaticDirPath ? path.relative(projectDirPath, underscoreNamedStaticDirPath) : underscoreNamedStaticDirPath;
         const serverDirPathRelativeToProjectDir = path.relative(projectDirPath, serverDirPath);
 
@@ -135,7 +139,7 @@ export default class Build extends BaseCommand<typeof Build> {
             if (underscoreNamedStaticDirPathRelativeToProjectDir && dependency.startsWith(underscoreNamedStaticDirPathRelativeToProjectDir + '/')) {
                 continue;
             }
-            if (dependency.startsWith(staticDirPathsRelativeToProjectDir + '/')) {
+            if (staticDirPathsRelativeToProjectDir && dependency.startsWith(staticDirPathsRelativeToProjectDir + '/')) {
                 continue;
             }
             if (dependency.startsWith(serverDirPathRelativeToProjectDir + '/')) {
