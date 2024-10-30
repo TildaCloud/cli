@@ -109,7 +109,7 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Error checking original config file: ${errorWithCheckingOriginalConfigFileStats.message}`);
         }
         if (originalConfigFileStats) {
-            this.error(`Original config file already exists: ${originalConfigFilePath}`);
+            this.error(format(`Next.js config backup file already exists: ${originalConfigFilePath}.`, 'Please restore', configFilePath, 'manually, delete the backup file and run the build command again.'));
         }
 
         // read the config file
