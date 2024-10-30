@@ -4,9 +4,11 @@ import {type Stats} from "node:fs";
 import * as path from 'node:path';
 import * as cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
+import * as semver from 'semver';
 import {CommandError} from "@oclif/core/interfaces";
 import {safely} from "../../../lib/utils.js";
 import {BaseCommand} from "../../../baseCommand.js";
+import {PackageLockJsonSchema} from "../../../lib/schemas.js";
 
 const CONFIG_FILES = [
     'next.config.js',
@@ -97,56 +99,99 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Error parsing package-lock.json: ${errorWithParsingPackageLockJson.message}`);
         }
 
+        const [errorWithValidatingPackageLockJson, packageLock] = await safely(PackageLockJsonSchema.parseAsync(packageLockJson));
+        if (errorWithValidatingPackageLockJson) {
+            this.error(`Error validating package-lock.json: ${errorWithValidatingPackageLockJson.message}`);
+        }
+
+        if (packageLock?.lockfileVersion !== 3) {
+            console.warn('Unsupported package-lock.json version', packageLock.lockfileVersion);
+        }
+
+        const packageNext = packageLockJson?.packages['node_modules/next'];
+        const frameworkVersionRaw = packageNext?.version;
+        if (!frameworkVersionRaw) {
+            this.error('Next.js version not found in package-lock.json');
+        }
+
+        const [errorWithMinVersionParsing, frameworkVersionMin] = await safely(() => semver.minVersion(frameworkVersionRaw || ''));
+        if (errorWithMinVersionParsing) {
+            this.error(format('Failed to parse framework version for Next.js', frameworkVersionRaw, errorWithMinVersionParsing));
+        }
+        if (!frameworkVersionMin) {
+            this.error(format('Failed to parse framework version for Next.js', frameworkVersionRaw));
+        }
+
+        const nextJsMajorVersion = semver.major(frameworkVersionMin);
+        const nextJsMinorVersion = semver.minor(frameworkVersionMin);
+        const isNextJsLessThan1340 = semver.lt(frameworkVersionMin, '13.4.0');
+
+        if (isNextJsLessThan1340) {
+            this.error(format('Next.js version', frameworkVersionMin, 'is not supported. Please upgrade to Next.js 13.4.0 or later.'));
+        }
+
         const isConfigFileAModule = existingConfigFileInfo.filePath.endsWith('.mjs') || packageJson.type === 'module';
 
-        const backupConfigFilePath = configFilePath + '.backup';
-        // check if backup config file exists
-        const [errorWithCheckingBackupConfigFileStats, backupConfigFileStats] = await safely<Stats, {
-            code?: string
-            message?: string
-        }>(fs.stat(backupConfigFilePath));
-        if (errorWithCheckingBackupConfigFileStats && errorWithCheckingBackupConfigFileStats.code !== 'ENOENT') {
-            this.error(`Error checking backup config file: ${errorWithCheckingBackupConfigFileStats.message}`);
+        if (nextJsMajorVersion < 15) {
+            // Apply transformation to Next.js config file required for Next.js 13.4.0 - <15.0.0
+
+            const backupConfigFilePath = configFilePath + '.tildaBackup';
+            // check if backup config file exists
+            const [errorWithCheckingBackupConfigFileStats, backupConfigFileStats] = await safely<Stats, {
+                code?: string
+                message?: string
+            }>(fs.stat(backupConfigFilePath));
+            if (errorWithCheckingBackupConfigFileStats && errorWithCheckingBackupConfigFileStats.code !== 'ENOENT') {
+                this.error(`Error checking backup config file: ${errorWithCheckingBackupConfigFileStats.message}`);
+            }
+            if (backupConfigFileStats) {
+                this.error(format(`Next.js config backup file already exists: ${backupConfigFilePath}.`, 'Please restore', configFilePath, 'manually, delete the backup file and run the build command again.'));
+            }
+
+            // read the config file
+            const [errorWithImportingConfig, importedConfigExports] = await safely(import(configFilePath));
+            if (errorWithImportingConfig) {
+                this.error(`Error reading config file: ${errorWithImportingConfig.message}`);
+            }
+
+            const nextJsConfig = importedConfigExports.default;
+            if (!nextJsConfig) {
+                this.error('Config file must export a default object');
+            }
+            this.debug(format('User config', nextJsConfig));
+
+            nextJsConfig.output = 'standalone';
+            nextJsConfig.experimental = nextJsConfig.experimental || {};
+
+            const nextJsCacheHandlerPath = path.resolve(projectDirPath, 'node_modules/@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs'));
+
+            // Apply Next.js 14.1 + related config changes
+            if (nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) {
+                nextJsConfig.cacheHandler = nextJsCacheHandlerPath;
+                nextJsConfig.experimental.swrDelta = 60 * 60 * 24 * 30 * 12; // 1 year
+            } else if (nextJsMajorVersion === 13 || (nextJsMajorVersion === 14 && nextJsMinorVersion < 1)) {
+                nextJsConfig.experimental.incrementalCacheHandlerPath = nextJsCacheHandlerPath;
+            }
+
+            this.debug(format('Modified config:', nextJsConfig));
+
+            // copy the backup config file to a new file with .backup extension
+            const [errorWithCopyingConfigFile] = await safely(fs.copyFile(configFilePath, backupConfigFilePath));
+            if (errorWithCopyingConfigFile) {
+                this.error(`Error copying config file: ${errorWithCopyingConfigFile.message}`);
+            }
+            this.configFilePaths = {backup: backupConfigFilePath, config: configFilePath};
+
+            const tildaConfigFileComment = '// This file is automatically generated by Tilda. If it is not removed automatically, please remove this file and restore Next.js config file with .backup extension in its place.';
+
+            // write the modified config file
+            const [errorWithWritingConfigFile] = await safely(fs.writeFile(configFilePath, isConfigFileAModule ? `${tildaConfigFileComment}\nexport default ${JSON.stringify(nextJsConfig, null, 2)};` : `${tildaConfigFileComment}\nmodule.exports = ${JSON.stringify(nextJsConfig, null, 2)};`));
+            if (errorWithWritingConfigFile) {
+                this.error(`Error writing config file: ${errorWithWritingConfigFile.message}`);
+            }
+
+            this.log('Wrote modified config file:', path.relative(projectDirPath, configFilePath), 'with Tilda config. User config file backed up at:', path.relative(projectDirPath, backupConfigFilePath));
         }
-        if (backupConfigFileStats) {
-            this.error(format(`Next.js config backup file already exists: ${backupConfigFilePath}.`, 'Please restore', configFilePath, 'manually, delete the backup file and run the build command again.'));
-        }
-
-        // read the config file
-        const [errorWithImportingConfig, importedConfigExports] = await safely(import(configFilePath));
-        if (errorWithImportingConfig) {
-            this.error(`Error reading config file: ${errorWithImportingConfig.message}`);
-        }
-
-        const nextJsConfig = importedConfigExports.default;
-        if (!nextJsConfig) {
-            this.error('Config file must export a default object');
-        }
-        this.debug(format('User config', nextJsConfig));
-
-        nextJsConfig.output = 'standalone';
-        nextJsConfig.experimental = nextJsConfig.experimental || (nextJsConfig.experimental = {});
-        nextJsConfig.cacheHandler = path.resolve(projectDirPath, 'node_modules/@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs'));
-        nextJsConfig.experimental.swrDelta = 60 * 60 * 24 * 7; // 1 week
-
-        this.debug(format('Modified config:', nextJsConfig));
-
-        // copy the backup config file to a new file with .backup extension
-        const [errorWithCopyingConfigFile] = await safely(fs.copyFile(configFilePath, backupConfigFilePath));
-        if (errorWithCopyingConfigFile) {
-            this.error(`Error copying config file: ${errorWithCopyingConfigFile.message}`);
-        }
-        this.configFilePaths = {backup: backupConfigFilePath, config: configFilePath};
-
-        const tildaConfigFileComment = '// This file is automatically generated by Tilda. If it is not removed automatically, please remove this file and restore Next.js config file with .backup extension in its place.';
-
-        // write the modified config file
-        const [errorWithWritingConfigFile] = await safely(fs.writeFile(configFilePath, isConfigFileAModule ? `${tildaConfigFileComment}\nexport default ${JSON.stringify(nextJsConfig, null, 2)};` : `${tildaConfigFileComment}\nmodule.exports = ${JSON.stringify(nextJsConfig, null, 2)};`));
-        if (errorWithWritingConfigFile) {
-            this.error(`Error writing config file: ${errorWithWritingConfigFile.message}`);
-        }
-
-        this.log('Wrote modified config file:', path.relative(projectDirPath, configFilePath), 'with Tilda config. User config file backed up at:', path.relative(projectDirPath, backupConfigFilePath));
 
         this.log('Running build command:', JSON.stringify(buildCommand), 'in', projectDirPath);
         const buildProgram = buildCommandParts[0];

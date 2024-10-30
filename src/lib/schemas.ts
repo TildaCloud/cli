@@ -11,3 +11,12 @@ export const CliConfigSchema = z.object({
         ),
     })
 })
+
+export const PackageLockJsonSchema = z.object({
+    name: z.string(),
+    lockfileVersion: z.number(),
+    requires: z.boolean(),
+    packages: z.record(z.string(), z.object({
+        version: z.string().optional(),
+    })),
+});
