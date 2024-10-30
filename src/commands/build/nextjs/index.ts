@@ -1,5 +1,7 @@
 import {Flags} from '@oclif/core'
 import {format} from "node:util";
+import {silent as resolveFrom} from 'resolve-from';
+import {resolveGlobal} from 'resolve-global';
 import {type Stats} from "node:fs";
 import * as path from 'node:path';
 import * as cp from 'node:child_process';
@@ -161,7 +163,14 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         nextJsConfig.output = 'standalone';
         nextJsConfig.experimental = nextJsConfig.experimental || {};
 
-        const nextJsCacheHandlerPath = path.resolve(projectDirPath, 'node_modules/@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs'));
+        const nextJsCaceHandleFileName = '@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
+        const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileName));
+        const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileName));
+
+        const nextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath;
+        if (!nextJsCacheHandlerPath) {
+            this.error(format('Cache handler not found:', nextJsCaceHandleFileName));
+        }
 
         // Apply Next.js 14.1 + related config changes
         if (nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) {
@@ -214,7 +223,10 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const rootStaticDir = path.resolve(projectDirPath, 'public');
 
         // check if root static dir exists
-        const [errorWithRootStaticDirStats, rootStaticDirStats] = await safely<Stats, { code?: string, message?: string}>(fs.stat(rootStaticDir));
+        const [errorWithRootStaticDirStats, rootStaticDirStats] = await safely<Stats, {
+            code?: string,
+            message?: string
+        }>(fs.stat(rootStaticDir));
         if (errorWithRootStaticDirStats && errorWithRootStaticDirStats.code !== 'ENOENT') {
             this.error(`Error checking root static dir: ${errorWithRootStaticDirStats.message}`);
         }
