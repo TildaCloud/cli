@@ -67,7 +67,8 @@
   },
   "repository": "TildaCloud/cli",
   "scripts": {
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "shx rm -rf dist && mkdirp dist && npm run copy-js-assets && tsc -b",
+    "copy-js-assets": "cp src/nextJsCacheHandler.cjs dist/nextJsCacheHandler.cjs && cp src/nextJsCacheHandler.mjs dist/nextJsCacheHandler.mjs",
     "lint": "eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
