@@ -163,21 +163,34 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         nextJsConfig.output = 'standalone';
         nextJsConfig.experimental = nextJsConfig.experimental || {};
 
-        const nextJsCaceHandleFileName = '@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
-        const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileName));
-        const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileName));
+        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
+        const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileRelativePath));
+        const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileRelativePath));
 
-        const nextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath;
-        if (!nextJsCacheHandlerPath) {
-            this.error(format('Cache handler not found:', nextJsCaceHandleFileName));
+        const chosenNextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath;
+        if (!chosenNextJsCacheHandlerPath) {
+            this.error(format('Cache handler not found:', nextJsCaceHandleFileRelativePath));
+        }
+
+        // copy nextJsCacheHandler to projectDirPath/.node_modules/.tilda/nextJsCacheHandler.{mjs,cjs}
+        const nextJsCacheHandlerDir = path.resolve(projectDirPath, 'node_modules/.tilda');
+        const cacheHandlerFileName = path.basename(chosenNextJsCacheHandlerPath);
+        const nextJsCacheHandlerFilePath = path.resolve(nextJsCacheHandlerDir, cacheHandlerFileName);
+        const [errorWithCreatingCacheHandlerDir] = await safely(fs.mkdir(nextJsCacheHandlerDir, {recursive: true}));
+        if (errorWithCreatingCacheHandlerDir) {
+            this.error(`Error creating node_modules/.tilda directory: ${errorWithCreatingCacheHandlerDir.message}`);
+        }
+        const [errorWithCopyingCacheHandlerFile] = await safely(fs.copyFile(chosenNextJsCacheHandlerPath, nextJsCacheHandlerFilePath));
+        if (errorWithCopyingCacheHandlerFile) {
+            this.error(`Error copying cache handler file: ${errorWithCopyingCacheHandlerFile.message}`);
         }
 
         // Apply Next.js 14.1 + related config changes
         if (nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) {
-            nextJsConfig.cacheHandler = nextJsCacheHandlerPath;
+            nextJsConfig.cacheHandler = nextJsCacheHandlerFilePath;
             nextJsConfig.experimental.swrDelta = 60 * 60 * 24 * 30 * 12; // 1 year
         } else if (nextJsMajorVersion === 13 || (nextJsMajorVersion === 14 && nextJsMinorVersion < 1)) {
-            nextJsConfig.experimental.incrementalCacheHandlerPath = nextJsCacheHandlerPath;
+            nextJsConfig.experimental.incrementalCacheHandlerPath = nextJsCacheHandlerFilePath;
         }
 
         this.debug(format('Modified config:', nextJsConfig));
