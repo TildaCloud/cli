@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.6.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.7.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -30,6 +30,7 @@ USAGE
 # Commands
 <!-- commands -->
 * [`tilda build`](#tilda-build)
+* [`tilda build nextjs`](#tilda-build-nextjs)
 * [`tilda deploy`](#tilda-deploy)
 * [`tilda help [COMMAND]`](#tilda-help-command)
 * [`tilda login`](#tilda-login)
@@ -71,23 +72,21 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.7.0/src/commands/build/index.ts)_
 
-## `tilda deploy`
+## `tilda build nextjs`
 
 Build the application
 
 ```
 USAGE
-  $ tilda deploy --apiOrigin <value> --projectDir <value> --projectId <value> --serviceId <value> --runtime
-    <value> [--json]
+  $ tilda build nextjs --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
 
 FLAGS
-  --apiOrigin=<value>   (required) [default: https://tilda.net] API origin
-  --projectDir=<value>  (required) Relative path project directory
-  --projectId=<value>   (required) Project ID
-  --runtime=<value>     (required) Runtime
-  --serviceId=<value>   (required) Service ID
+  --apiOrigin=<value>     (required) [default: https://tilda.net] API origin
+  --buildCommand=<value>  (required) [default: npm run build] Next.js build command
+  --projectDir=<value>    (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
+                          directory
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -96,7 +95,32 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.7.0/src/commands/build/nextjs/index.ts)_
+
+## `tilda deploy`
+
+Build the application
+
+```
+USAGE
+  $ tilda deploy --apiOrigin <value> --projectDir <value> --projectSlug <value> --serviceSlug <value>
+    --runtime <value> [--json]
+
+FLAGS
+  --apiOrigin=<value>    (required) [default: https://tilda.net] API origin
+  --projectDir=<value>   (required) Relative path to project directory
+  --projectSlug=<value>  (required) Project slug
+  --runtime=<value>      (required) Runtime
+  --serviceSlug=<value>  (required) Service slug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Build the application
+```
+
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.7.0/src/commands/deploy/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -136,7 +160,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.7.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -157,7 +181,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.6.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.7.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
