@@ -22,11 +22,13 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
         if (!this.identity) {
             this.error('You are not logged in', {
                 code: 'NOT_LOGGED_IN',
+                suggestions: ['Run `tilda login` to login']
             })
         }
         if (!this.apiClient) {
             this.error('API client not initialized', {
-                code: 'API_CLIENT_NOT_INITIALIZED'
+                code: 'API_CLIENT_NOT_INITIALIZED',
+                suggestions: ['Run `tilda login` to login. If the issue persists, please contact support.']
             })
         }
 
