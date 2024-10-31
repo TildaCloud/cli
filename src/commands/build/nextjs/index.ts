@@ -167,9 +167,10 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileRelativePath));
         const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileRelativePath));
         const currentFilePath = new URL(import.meta.url).pathname;
+        const currentWorkingDir = process.cwd();
         // find nearest node_modules in current file's path
         const currentFileNodeModulesDirResult = this.findClosestNodeModulesDir(currentFilePath);
-        const currentFilePackageDir = currentFileNodeModulesDirResult ? path.dirname(currentFileNodeModulesDirResult) : '';
+        const currentFilePackageDir = currentFileNodeModulesDirResult ? path.dirname(currentFileNodeModulesDirResult) : currentWorkingDir;
         const [, currentFileRelativeCacheHandlerPath] = await safely(() => resolveFrom(currentFilePackageDir, nextJsCaceHandleFileRelativePath));
 
         const chosenNextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath || currentFileRelativeCacheHandlerPath;
