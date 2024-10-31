@@ -10,10 +10,10 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
     static description = 'Build the application'
 
     static flags = {
-        projectDir: Flags.string({description: 'Relative path to project directory', required: true}),
+        projectDir: Flags.string({description: 'Relative path to project directory', required: true, default: '.'}),
         project: Flags.string({description: 'Project slug', required: true}),
         service: Flags.string({description: 'Service slug', required: true}),
-        runtime: Flags.string({description: 'Runtime', required: true}),
+        runtime: Flags.string({description: 'Runtime', required: true, default: 'nodejs20.x'}),
     }
 
     async run(): Promise<void> {
