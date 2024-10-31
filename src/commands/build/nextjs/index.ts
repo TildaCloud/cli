@@ -163,14 +163,18 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         nextJsConfig.output = 'standalone';
         nextJsConfig.experimental = nextJsConfig.experimental || {};
 
-        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
+        const nextJsCacheHandlerFileName = isConfigFileAModule ? 'mjs' : 'cjs';
+        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler.' + nextJsCacheHandlerFileName;
         const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileRelativePath));
         const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileRelativePath));
+        const currentFilePath = new URL(import.meta.url).pathname;
+        const currentFileRelativeCacheHandlerPath = path.resolve(path.dirname(currentFilePath), '../../../../', nextJsCacheHandlerFileName);
 
-        const chosenNextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath;
+        const chosenNextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath || currentFileRelativeCacheHandlerPath;
         if (!chosenNextJsCacheHandlerPath) {
             this.error(format('Cache handler not found:', nextJsCaceHandleFileRelativePath));
         }
+        this.debug(format('Chosen cache handler:', chosenNextJsCacheHandlerPath));
 
         // copy nextJsCacheHandler to projectDirPath/.node_modules/.tilda/nextJsCacheHandler.{mjs,cjs}
         const nextJsCacheHandlerDir = path.resolve(projectDirPath, 'node_modules/.tilda');
