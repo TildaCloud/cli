@@ -163,12 +163,14 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         nextJsConfig.output = 'standalone';
         nextJsConfig.experimental = nextJsConfig.experimental || {};
 
-        const nextJsCacheHandlerFileName = isConfigFileAModule ? 'mjs' : 'cjs';
-        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler.' + nextJsCacheHandlerFileName;
+        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler' + (isConfigFileAModule ? 'mjs' : 'cjs');
         const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileRelativePath));
         const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileRelativePath));
         const currentFilePath = new URL(import.meta.url).pathname;
-        const currentFileRelativeCacheHandlerPath = path.resolve(path.dirname(currentFilePath), '../../../../', nextJsCacheHandlerFileName);
+        // find nearest node_modules in current file's path
+        const currentFileNodeModulesDirResult = this.findClosestNodeModulesDir(currentFilePath);
+        const currentFilePackageDir = currentFileNodeModulesDirResult ? path.dirname(currentFileNodeModulesDirResult) : '';
+        const [, currentFileRelativeCacheHandlerPath] = await safely(() => resolveFrom(currentFilePackageDir, nextJsCaceHandleFileRelativePath));
 
         const chosenNextJsCacheHandlerPath = cacheHandlerLocalPath || cacheHandlerGlobalPath || currentFileRelativeCacheHandlerPath;
         if (!chosenNextJsCacheHandlerPath) {
@@ -279,5 +281,20 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
             this.log('Restored backup config file:', path.relative(configFileDir, this.configFilePaths.backup), '→', path.relative(configFileDir, this.configFilePaths.config));
         }
+    }
+
+
+    findClosestNodeModulesDir(filePath: string) {
+        let currentPath = path.dirname(filePath);
+
+        while (currentPath !== path.parse(currentPath).root) {
+            const currentDirName = path.basename(currentPath);
+            if (currentDirName === 'node_modules') {
+                return currentPath;
+            }
+            currentPath = path.dirname(currentPath);
+        }
+
+        return null;
     }
 }
