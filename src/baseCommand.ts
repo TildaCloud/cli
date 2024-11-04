@@ -4,7 +4,7 @@ import path from "node:path";
 import {safely} from "./lib/utils.js";
 import fs from "node:fs/promises";
 import {z} from "zod";
-import {CliConfigSchema} from "./lib/schemas.js";
+import {CliConfigSchema, InlineIdentityJsonSchema} from "./lib/schemas.js";
 import {createTRPCClient} from "@trpc/client";
 // @ts-ignore: TS6059
 // eslint-disable-next-line import/no-unresolved
@@ -25,6 +25,11 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             required: true,
             env: 'TILDA_CLI_API_ORIGIN',
             default: 'https://tilda.net'
+        }),
+        inlineIdentityJson: Flags.string({
+            description: 'Private key config. Must be of type { privateKey: string, keyId: number }',
+            required: false,
+            env: 'TILDA_CLI_INLINE_IDENTITY_JSON'
         }),
     }
 
@@ -96,6 +101,16 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
         const identity = this.tildaConfig.v1.identities[this.flags.apiOrigin];
         this.identity = Object.freeze(identity);
 
+        const [errorWithParsingInlineIdentity, inlineIdentityJson] = await safely(() => JSON.parse(this.flags.inlineIdentityJson!));
+        if (this.flags.inlineIdentityJson && errorWithParsingInlineIdentity) {
+            this.error(`Error parsing inline identity: ${errorWithParsingInlineIdentity.message}`);
+        }
+
+        const [errorWithInlineIdentityJson, inlineIdentity] = await safely(InlineIdentityJsonSchema.parseAsync(inlineIdentityJson));
+        if (this.flags.inlineIdentityJson && errorWithInlineIdentityJson) {
+            this.error(`Error getting validating inline identity: ${errorWithInlineIdentityJson.message}`);
+        }
+
         if (identity) {
             // read the private key
             const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), identity.userId, 'pem'].join('.'));
@@ -137,9 +152,19 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
                 return;
             }
 
-            // revoke the key
             const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, identity.keyId);
             this.apiClient = trpcClient
+        } else if (inlineIdentity) {
+            const [errorWithCreatingPrivateKey, privateKey] = await safely(() => crypto.createPrivateKey({
+                key: inlineIdentity.privateKey,
+                format: 'pem'
+            }));
+            if (errorWithCreatingPrivateKey) {
+                this.error(`Error creating private key: ${errorWithCreatingPrivateKey.message}`);
+            }
+
+            const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, inlineIdentity.keyId);
+            this.apiClient = trpcClient;
         }
     }
 

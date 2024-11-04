@@ -19,7 +19,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
     async run(): Promise<void> {
         const {args, flags, argv} = await this.parse(Deploy)
 
-        if (!this.identity) {
+        if (!this.identity && !flags.inlineIdentityJson) {
             this.error('You are not logged in', {
                 code: 'NOT_LOGGED_IN',
                 suggestions: ['Run `tilda login` to login']

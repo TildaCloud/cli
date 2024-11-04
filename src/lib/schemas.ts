@@ -20,3 +20,8 @@ export const PackageLockJsonSchema = z.object({
         version: z.string().optional(),
     })),
 });
+
+export const InlineIdentityJsonSchema = z.object({
+    privateKey: z.string(),
+    keyId: z.number(),
+});
