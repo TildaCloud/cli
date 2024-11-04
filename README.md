@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.19.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.20.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -53,10 +53,11 @@ Build the application
 ```
 USAGE
   $ tilda build --apiOrigin <value> --serverDir <value> --projectDir <value> --serverEntryFile <value>
-    [--json] [--rootStaticDir <value>] [--underscoreNamedStaticDir <value>]
+    [--json] [--inlineIdentityJson <value>] [--rootStaticDir <value>] [--underscoreNamedStaticDir <value>]
 
 FLAGS
   --apiOrigin=<value>                 (required) [default: https://tilda.net] API origin
+  --inlineIdentityJson=<value>        Private key config. Must be of type { privateKey: string, keyId: number }
   --projectDir=<value>                (required) Relative path project directory
   --rootStaticDir=<value>             Relative path to static files directory that will be served from root (/)
   --serverDir=<value>                 (required) Relative path to server files directory
@@ -71,7 +72,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.19.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.20.0/src/commands/build/index.ts)_
 
 ## `tilda build nextjs`
 
@@ -80,12 +81,14 @@ Build Next.js project
 ```
 USAGE
   $ tilda build nextjs --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
+    [--inlineIdentityJson <value>]
 
 FLAGS
-  --apiOrigin=<value>     (required) [default: https://tilda.net] API origin
-  --buildCommand=<value>  (required) [default: npm run build] Next.js build command
-  --projectDir=<value>    (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
-                          directory
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --buildCommand=<value>        (required) [default: npm run build] Next.js build command
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
+  --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
+                                directory
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -94,7 +97,7 @@ DESCRIPTION
   Build Next.js project
 ```
 
-_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.19.0/src/commands/build/nextjs/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.20.0/src/commands/build/nextjs/index.ts)_
 
 ## `tilda deploy`
 
@@ -103,14 +106,15 @@ Build the application
 ```
 USAGE
   $ tilda deploy --apiOrigin <value> --projectDir <value> --project <value> --service <value> --runtime
-    <value> [--json]
+    <value> [--json] [--inlineIdentityJson <value>]
 
 FLAGS
-  --apiOrigin=<value>   (required) [default: https://tilda.net] API origin
-  --project=<value>     (required) Project slug
-  --projectDir=<value>  (required) [default: .] Relative path to project directory
-  --runtime=<value>     (required) [default: nodejs20.x] Runtime
-  --service=<value>     (required) Service slug
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
+  --project=<value>             (required) Project slug
+  --projectDir=<value>          (required) [default: .] Relative path to project directory
+  --runtime=<value>             (required) [default: nodejs20.x] Runtime
+  --service=<value>             (required) Service slug
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -119,7 +123,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.19.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.20.0/src/commands/deploy/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -147,10 +151,11 @@ Log in to Tilda
 
 ```
 USAGE
-  $ tilda login --apiOrigin <value> [--json]
+  $ tilda login --apiOrigin <value> [--json] [--inlineIdentityJson <value>]
 
 FLAGS
-  --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -159,7 +164,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.19.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.20.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -167,11 +172,12 @@ Log in to Tilda
 
 ```
 USAGE
-  $ tilda logout --apiOrigin <value> [--json] [--force]
+  $ tilda logout --apiOrigin <value> [--json] [--inlineIdentityJson <value>] [--force]
 
 FLAGS
-  --apiOrigin=<value>  (required) [default: https://tilda.net] API origin
-  --force              Force logout
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --force                       Force logout
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -180,7 +186,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.19.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.20.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
