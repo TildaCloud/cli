@@ -12,7 +12,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
     static flags = {
         projectDir: Flags.string({description: 'Relative path to project directory', required: true, default: '.'}),
         project: Flags.string({description: 'Project slug', required: true}),
-        service: Flags.string({description: 'Service slug', required: true}),
+        site: Flags.string({description: 'Site slug', required: true}),
         runtime: Flags.string({description: 'Runtime', required: true, default: 'nodejs20.x'}),
     }
 
@@ -56,7 +56,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
 
         const [errorWithPackageUrl, packageUploadUrlResponse] = await safely(this.apiClient.getComputeServicePackageUploadUrl.mutate({
             projectSlug: flags.project,
-            serviceSlug: flags.service,
+            serviceSlug: flags.site,
             runtime: flags.runtime,
             packageFileSizeBytes: 0,
         }));
