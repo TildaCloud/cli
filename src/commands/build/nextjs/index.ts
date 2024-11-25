@@ -12,6 +12,7 @@ import {safely} from "../../../lib/utils.js";
 import {BaseCommand} from "../../../baseCommand.js";
 import {PackageLockJsonSchema} from "../../../lib/schemas.js";
 import BuildCommand from '../index.js'
+import * as tsImport from 'ts-import'
 
 const CONFIG_FILES = [
     'next.config.js',
@@ -133,7 +134,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             this.error(format('Next.js version', frameworkVersionMin, 'is not supported. Please upgrade to Next.js 13.4.0 or later.'));
         }
 
-        const isConfigFileAModule = existingConfigFileInfo.filePath.endsWith('.mjs') || packageJson.type === 'module';
+        const configFileExtension = path.extname(configFilePath);
+        const isConfigFileAModule = configFileExtension === '.mjs' || packageJson.type === 'module' || configFileExtension === '.ts';
 
         const backupConfigFilePath = configFilePath + '.tildaBackup';
         // check if backup config file exists
@@ -149,7 +151,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
 
         // read the config file
-        const [errorWithImportingConfig, importedConfigExports] = await safely(import(configFilePath));
+        const [errorWithImportingConfig, importedConfigExports] = await safely(configFileExtension === '.ts' ? tsImport.load(configFilePath, {
+            useCache: false,
+        }) : import(configFilePath));
         if (errorWithImportingConfig) {
             this.error(`Error reading config file: ${errorWithImportingConfig.message}`);
         }
