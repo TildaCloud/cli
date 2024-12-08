@@ -12,7 +12,6 @@ import {safely} from "../../../lib/utils.js";
 import {BaseCommand} from "../../../baseCommand.js";
 import {PackageLockJsonSchema} from "../../../lib/schemas.js";
 import BuildCommand from '../index.js'
-import * as tsImport from 'ts-import'
 
 const CONFIG_FILES = [
     'next.config.js',
@@ -36,7 +35,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }),
     }
 
-    private configFilePaths: undefined | { backup: string, config: string };
+    private configFilePaths: undefined | { original: string, config: string };
 
     async run(): Promise<void> {
         const {args, flags} = await this.parse(BuildNextJs)
@@ -137,35 +136,24 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const configFileExtension = path.extname(configFilePath);
         const isConfigFileAModule = configFileExtension === '.mjs' || packageJson.type === 'module' || configFileExtension === '.ts';
 
-        const backupConfigFilePath = configFilePath + '.tildaBackup';
-        // check if backup config file exists
-        const [errorWithCheckingBackupConfigFileStats, backupConfigFileStats] = await safely<Stats, {
+        const originalConfigFilePath = path.basename(configFilePath, configFileExtension) + '.original' + configFileExtension;
+        // check if original config file exists
+        const [errorWithCheckingOriginalConfigFileStats, originalConfigFileStats] = await safely<Stats, {
             code?: string
             message?: string
-        }>(fs.stat(backupConfigFilePath));
-        if (errorWithCheckingBackupConfigFileStats && errorWithCheckingBackupConfigFileStats.code !== 'ENOENT') {
-            this.error(`Error checking backup config file: ${errorWithCheckingBackupConfigFileStats.message}`);
+        }>(fs.stat(originalConfigFilePath));
+        if (errorWithCheckingOriginalConfigFileStats && errorWithCheckingOriginalConfigFileStats.code !== 'ENOENT') {
+            this.error(`Error checking original config file: ${errorWithCheckingOriginalConfigFileStats.message}`);
         }
-        if (backupConfigFileStats) {
-            this.error(format(`Next.js config backup file already exists: ${backupConfigFilePath}.`, 'Please restore', configFilePath, 'manually, delete the backup file and run the build command again.'));
-        }
-
-        // read the config file
-        const [errorWithImportingConfig, importedConfigExports] = await safely(configFileExtension === '.ts' ? tsImport.load(configFilePath, {
-            useCache: false,
-        }) : import(configFilePath));
-        if (errorWithImportingConfig) {
-            this.error(`Error reading config file: ${errorWithImportingConfig.message}`);
+        if (originalConfigFileStats) {
+            this.error(format(`Next.js config original file already exists: ${originalConfigFilePath}.`, 'Please restore', configFilePath, 'manually, delete the original file and run the build command again.'));
         }
 
-        const nextJsConfig = importedConfigExports.default;
-        if (!nextJsConfig) {
-            this.error('Config file must export a default object');
-        }
-        this.debug(format('User config', nextJsConfig));
+        const nextJsConfigOverwrites = {};
+        this.debug(format('User config', nextJsConfigOverwrites));
 
-        nextJsConfig.output = 'standalone';
-        nextJsConfig.experimental = nextJsConfig.experimental || {};
+        nextJsConfigOverwrites.output = 'standalone';
+        nextJsConfigOverwrites.experimental = nextJsConfigOverwrites.experimental || {};
 
         const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
         const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileRelativePath));
@@ -198,30 +186,39 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
         // Apply Next.js 14.1 + related config changes
         if (nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) {
-            nextJsConfig.cacheHandler = nextJsCacheHandlerFilePath;
-            nextJsConfig.experimental.swrDelta = 60 * 60 * 24 * 30 * 12; // 1 year
+            nextJsConfigOverwrites.cacheHandler = nextJsCacheHandlerFilePath;
+            nextJsConfigOverwrites.experimental.swrDelta = 60 * 60 * 24 * 30 * 12; // 1 year
         } else if (nextJsMajorVersion === 13 || (nextJsMajorVersion === 14 && nextJsMinorVersion < 1)) {
-            nextJsConfig.experimental.incrementalCacheHandlerPath = nextJsCacheHandlerFilePath;
+            nextJsConfigOverwrites.experimental.incrementalCacheHandlerPath = nextJsCacheHandlerFilePath;
         }
 
-        this.debug(format('Modified config:', nextJsConfig));
+        this.debug(format('Next.js config overwrites:', nextJsConfigOverwrites));
 
-        // copy the backup config file to a new file with .backup extension
-        const [errorWithCopyingConfigFile] = await safely(fs.copyFile(configFilePath, backupConfigFilePath));
+        const [errorWithReadingOriginalConfigFile, originalConfigFileText] = await safely(fs.readFile(configFilePath, 'utf8'));
+        if (errorWithReadingOriginalConfigFile) {
+            this.error(`Error reading original config file: ${errorWithReadingOriginalConfigFile.message}`);
+        }
+
+        // copy the original config file to a new file with .original extension
+        const [errorWithCopyingConfigFile] = await safely(fs.copyFile(configFilePath, originalConfigFilePath));
         if (errorWithCopyingConfigFile) {
             this.error(`Error copying config file: ${errorWithCopyingConfigFile.message}`);
         }
-        this.configFilePaths = {backup: backupConfigFilePath, config: configFilePath};
+        this.configFilePaths = {original: originalConfigFilePath, config: configFilePath};
 
-        const tildaConfigFileComment = '// This file is automatically generated by Tilda. If it is not removed automatically, please remove this file and restore Next.js config file with .backup extension in its place.';
+        const tildaConfigFileComment = '// eslint-disable-next-line @typescript-eslint/ban-ts-comment\n' +
+            '// @ts-nocheck\n' +
+            '// This file is automatically generated by Tilda. If it is not removed automatically, please remove this file and restore Next.js config file with .original suffix in its place.';
 
         // write the modified config file
-        const [errorWithWritingConfigFile] = await safely(fs.writeFile(configFilePath, isConfigFileAModule ? `${tildaConfigFileComment}\nexport default ${JSON.stringify(nextJsConfig, null, 2)};` : `${tildaConfigFileComment}\nmodule.exports = ${JSON.stringify(nextJsConfig, null, 2)};`));
+        const [errorWithWritingConfigFile] = await safely(fs.writeFile(configFilePath, isConfigFileAModule ?
+            `${tildaConfigFileComment}\nimport config from ${JSON.stringify('./' + originalConfigFilePath)};\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} } };\nexport default newConfig;` :
+            `${tildaConfigFileComment}\nconst config = require(${JSON.stringify('./' + originalConfigFilePath)});\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} } };\nmodule.exports = newConfig;`));
         if (errorWithWritingConfigFile) {
             this.error(`Error writing config file: ${errorWithWritingConfigFile.message}`);
         }
 
-        this.log('User config file backed up:', path.relative(projectDirPath, configFilePath), '→', path.relative(projectDirPath, backupConfigFilePath))
+        this.log('User config file backed up:', path.relative(projectDirPath, configFilePath), '→', path.relative(projectDirPath, originalConfigFilePath))
         this.log('Wrote modified config file:', path.relative(projectDirPath, configFilePath), 'with Tilda config.');
 
         this.log('Running build command:', JSON.stringify(buildCommand), 'in', projectDirPath);
@@ -263,28 +260,31 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             '--underscoreNamedStaticDir', underscoreNamedStaticDir,
             ...(rootStaticDirStats?.isDirectory() ? ['--rootStaticDir', rootStaticDir] : [])
         ]);
+
+        this.log('Tilda package built');
     }
 
     async catch(error: CommandError) {
-        await this.restoreConfigFile()
+        await this.restoreConfigFile().catch(() => {
+        });
         throw error;
     }
 
     async restoreConfigFile() {
         if (this.configFilePaths) {
             const configFileDir = path.dirname(this.configFilePaths.config);
-            // restore the backup config file
-            const [errorWithRestoringConfigFile] = await safely(fs.copyFile(this.configFilePaths.backup, this.configFilePaths.config));
+            // restore the original config file
+            const [errorWithRestoringConfigFile] = await safely(fs.copyFile(this.configFilePaths.original, this.configFilePaths.config));
             if (errorWithRestoringConfigFile) {
                 this.error(`Error restoring config file: ${errorWithRestoringConfigFile.message}`);
             }
-            // remove the backup reference config file
-            const [errorWithRemovingBackupConfigFile] = await safely(fs.rm(this.configFilePaths.backup));
-            if (errorWithRemovingBackupConfigFile) {
-                this.error(`Error removing backup config file: ${errorWithRemovingBackupConfigFile.message}`);
+            // remove the original reference config file
+            const [errorWithRemovingOriginalConfigFile] = await safely(fs.rm(this.configFilePaths.original));
+            if (errorWithRemovingOriginalConfigFile) {
+                this.error(`Error removing original config file: ${errorWithRemovingOriginalConfigFile.message}`);
             }
 
-            this.log('Restored backup config file:', path.relative(configFileDir, this.configFilePaths.backup), '→', path.relative(configFileDir, this.configFilePaths.config));
+            this.log('Restored original config file:', path.relative(configFileDir, this.configFilePaths.original), '→', path.relative(configFileDir, this.configFilePaths.config));
         }
     }
 
