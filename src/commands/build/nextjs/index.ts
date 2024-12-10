@@ -171,17 +171,30 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
         this.debug(format('Chosen cache handler:', chosenNextJsCacheHandlerPath));
 
+        const nextJsImageLoaderFilePath = path.join(path.dirname(chosenNextJsCacheHandlerPath), 'nextjs-image-loader.mjs');
+        this.debug('Copying image loader file:', nextJsImageLoaderFilePath);
+
         // copy nextJsCacheHandler to projectDirPath/.node_modules/.tilda/nextJsCacheHandler.{mjs,cjs}
-        const nextJsCacheHandlerDir = path.resolve(projectDirPath, 'node_modules/.tilda');
+        const nextJsTildaAssetsDir = path.resolve(projectDirPath, 'node_modules/.tilda');
         const cacheHandlerFileName = path.basename(chosenNextJsCacheHandlerPath);
-        const nextJsCacheHandlerFilePath = path.resolve(nextJsCacheHandlerDir, cacheHandlerFileName);
-        const [errorWithCreatingCacheHandlerDir] = await safely(fs.mkdir(nextJsCacheHandlerDir, {recursive: true}));
-        if (errorWithCreatingCacheHandlerDir) {
-            this.error(`Error creating node_modules/.tilda directory: ${errorWithCreatingCacheHandlerDir.message}`);
+        const nextJsCacheHandlerFilePath = path.resolve(nextJsTildaAssetsDir, cacheHandlerFileName);
+        const [errorWithCreatingTildaAssetsDir] = await safely(fs.mkdir(nextJsTildaAssetsDir, {recursive: true}));
+        if (errorWithCreatingTildaAssetsDir) {
+            this.error(`Error creating node_modules/.tilda directory: ${errorWithCreatingTildaAssetsDir.message}`);
         }
         const [errorWithCopyingCacheHandlerFile] = await safely(fs.copyFile(chosenNextJsCacheHandlerPath, nextJsCacheHandlerFilePath));
         if (errorWithCopyingCacheHandlerFile) {
             this.error(`Error copying cache handler file: ${errorWithCopyingCacheHandlerFile.message}`);
+        }
+
+        const [errorWithCopyingImageLoaderFile] = await safely(fs.copyFile(nextJsImageLoaderFilePath, path.resolve(nextJsTildaAssetsDir, 'nextjs-image-loader.mjs')));
+        if (errorWithCopyingImageLoaderFile) {
+            this.error(`Error copying image loader file: ${errorWithCopyingImageLoaderFile.message}`);
+        }
+
+        nextJsConfigOverwrites.images = {
+            loader: 'custom',
+            loaderFile: path.relative(projectDirPath, nextJsImageLoaderFilePath),
         }
 
         // Apply Next.js 14.1 + related config changes
@@ -212,8 +225,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
         // write the modified config file
         const [errorWithWritingConfigFile] = await safely(fs.writeFile(configFilePath, isConfigFileAModule ?
-            `${tildaConfigFileComment}\nimport config from ${JSON.stringify('./' + originalConfigFilePath)};\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} } };\nexport default newConfig;` :
-            `${tildaConfigFileComment}\nconst config = require(${JSON.stringify('./' + originalConfigFilePath)});\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} } };\nmodule.exports = newConfig;`));
+            `${tildaConfigFileComment}\nimport config from ${JSON.stringify('./' + originalConfigFilePath)};\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} }, images: { ...${JSON.stringify(nextJsConfigOverwrites.images)}, ...config.images } };\nexport default newConfig;` :
+            `${tildaConfigFileComment}\nconst config = require(${JSON.stringify('./' + originalConfigFilePath)});\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} }, images: { ...${JSON.stringify(nextJsConfigOverwrites.images)}, ...config.images } };\nmodule.exports = newConfig;`));
         if (errorWithWritingConfigFile) {
             this.error(`Error writing config file: ${errorWithWritingConfigFile.message}`);
         }
