@@ -155,7 +155,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         nextJsConfigOverwrites.output = 'standalone';
         nextJsConfigOverwrites.experimental = nextJsConfigOverwrites.experimental || {};
 
-        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
+        const nextJsCaceHandleFileRelativePath = '@tildacloud/cli/dist/assets/nextJsCacheHandler.' + (isConfigFileAModule ? 'mjs' : 'cjs');
         const [, cacheHandlerLocalPath] = await safely(() => resolveFrom(projectDirPath, nextJsCaceHandleFileRelativePath));
         const [, cacheHandlerGlobalPath] = await safely(() => resolveGlobal(nextJsCaceHandleFileRelativePath));
         const currentFilePath = new URL(import.meta.url).pathname;
