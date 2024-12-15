@@ -207,7 +207,7 @@ export default class Build extends BaseCommand<typeof Build> {
                 continue;
             }
 
-            const fileAbsolutePath = path.join(entry.parentPath, entry.name);
+            const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
             const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
             const [errorWithReadingFile, fileContents] = await safely(fs.readFile(fileAbsolutePath));
             if (errorWithReadingFile) {
