@@ -102,6 +102,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
 
         this.debug('Created version', versionResponse);
         const deployedHostnames = versionResponse?.routingConfig?.hostnames?.map((h: string) => `https://${h}/`)
-        this.log('Deployed version', deployedHostnames);
+        this.log('Deployed version');
+        this.log(deployedHostnames.join('\n'))
     }
 }
