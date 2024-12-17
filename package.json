@@ -73,7 +73,7 @@
   "repository": "TildaCloud/cli",
   "scripts": {
     "build": "shx rm -rf dist && mkdirp dist/assets && npm run copy-js-assets && tsc -b",
-    "copy-js-assets": "cp -R src/assets dist",
+    "copy-js-assets": "shx cp -R src/assets dist",
     "lint": "eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
