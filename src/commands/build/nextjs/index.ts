@@ -12,6 +12,7 @@ import {safely} from "../../../lib/utils.js";
 import {BaseCommand} from "../../../baseCommand.js";
 import {PackageLockJsonSchema} from "../../../lib/schemas.js";
 import BuildCommand from '../index.js'
+import { type NextConfig  } from 'next'
 
 const CONFIG_FILES = [
     'next.config.js',
@@ -149,7 +150,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             this.error(format(`Next.js config original file already exists: ${originalConfigFilePath}.`, 'Please restore', configFilePath, 'manually, delete the original file and run the build command again.'));
         }
 
-        const nextJsConfigOverwrites = {};
+        const nextJsConfigOverwrites: NextJsConfigOverrides = {};
         this.debug(format('User config', nextJsConfigOverwrites));
 
         nextJsConfigOverwrites.output = 'standalone';
@@ -314,5 +315,12 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
 
         return null;
+    }
+}
+
+type NextJsConfigOverrides = Omit<NextConfig, "experimental"> & {
+    experimental?: NextConfig['experimental'] & {
+        swrDelta?: number
+        incrementalCacheHandlerPath?: string
     }
 }
