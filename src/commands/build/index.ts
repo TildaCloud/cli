@@ -110,7 +110,10 @@ export default class Build extends BaseCommand<typeof Build> {
 
         if (rootStaticDirPath) {
             this.debug('Copying root static files directories');
-            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {recursive: true}));
+            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {
+                recursive: true,
+                verbatimSymlinks: true,
+            }));
             if (errorWithCopyingStaticFilesDir) {
                 this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
             }
@@ -118,14 +121,20 @@ export default class Build extends BaseCommand<typeof Build> {
         if (underscoreNamedStaticDirPath) {
             this.debug('Copying underscore named static files directories');
             const dirName = path.relative(projectDirPath, underscoreNamedStaticDirPath).replace('.', '_');
-            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(underscoreNamedStaticDirPath, path.join(tildaBuildStaticDirPath, dirName), {recursive: true}));
+            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(underscoreNamedStaticDirPath, path.join(tildaBuildStaticDirPath, dirName), {
+                recursive: true,
+                verbatimSymlinks: true,
+            }));
             if (errorWithCopyingStaticFilesDir) {
                 this.error(`Error copying underscore named static files directory: ${errorWithCopyingStaticFilesDir.message}`);
             }
         }
 
         this.debug('Copying server files directory');
-        const [errorWithCopyingServerFilesDir] = await safely(fs.cp(serverDirPath, tildaBuildComputeDirPath, {recursive: true}));
+        const [errorWithCopyingServerFilesDir] = await safely(fs.cp(serverDirPath, tildaBuildComputeDirPath, {
+            recursive: true,
+            verbatimSymlinks: true,
+        }));
         if (errorWithCopyingServerFilesDir) {
             this.error(`Error copying server files directory: ${errorWithCopyingServerFilesDir.message}`);
         }
@@ -156,19 +165,26 @@ export default class Build extends BaseCommand<typeof Build> {
         for (const dependency of entryFileDependencies) {
             const dependencyAbsolutePath = path.join(projectDirPath, dependency);
             const destinationAbsolutePath = path.join(tildaBuildComputeDirPath, dependency);
-            const [errorWithCopyingADependency] = await safely(fs.cp(dependencyAbsolutePath, destinationAbsolutePath));
+            const [errorWithCopyingADependency] = await safely(fs.cp(dependencyAbsolutePath, destinationAbsolutePath, {
+                verbatimSymlinks: true,
+            }));
             if (errorWithCopyingADependency) {
                 this.error(`Error copying a dependency (${dependencyAbsolutePath}): ${errorWithCopyingADependency.message}`);
             }
         }
 
         this.debug('Copying debug files');
-        const [errorWithCopyingDebugServerFiles] = await safely(fs.cp(serverDirPath, path.join(tildaDebugDirPath, path.basename(serverDirPath)), {recursive: true}));
+        const [errorWithCopyingDebugServerFiles] = await safely(fs.cp(serverDirPath, path.join(tildaDebugDirPath, path.basename(serverDirPath)), {
+            recursive: true,
+            verbatimSymlinks: true,
+        }));
         if (errorWithCopyingDebugServerFiles) {
             this.error(`Error copying debug files for server: ${errorWithCopyingDebugServerFiles.message}`);
         }
 
-        const [errorWithCopyingDebugPackageLockJson] = await safely(fs.cp(path.join(projectDirPath, 'package-lock.json'), path.join(tildaDebugDirPath, 'package-lock.json')));
+        const [errorWithCopyingDebugPackageLockJson] = await safely(fs.cp(path.join(projectDirPath, 'package-lock.json'), path.join(tildaDebugDirPath, 'package-lock.json'), {
+            verbatimSymlinks: true,
+        }));
         if (errorWithCopyingDebugPackageLockJson) {
             this.error(`Error copying debug package-lock.json: ${errorWithCopyingDebugPackageLockJson.message}`);
         }
