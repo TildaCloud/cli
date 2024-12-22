@@ -1,10 +1,15 @@
-import {Args, Command, Flags} from '@oclif/core'
+import {Flags} from '@oclif/core'
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import JSZip from "jszip";
 import {nodeFileTrace} from '@vercel/nft';
-import AdmnZip from 'adm-zip';
 import {safely} from "../../lib/utils.js";
 import {BaseCommand} from "../../baseCommand.js";
+
+const LOCK_FILES = [
+    'package-lock.json',
+    'pnpm-lock.yaml',
+] as const;
 
 export default class Build extends BaseCommand<typeof Build> {
     static description = 'Build the application'
@@ -182,11 +187,32 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Error copying debug files for server: ${errorWithCopyingDebugServerFiles.message}`);
         }
 
-        const [errorWithCopyingDebugPackageLockJson] = await safely(fs.cp(path.join(projectDirPath, 'package-lock.json'), path.join(tildaDebugDirPath, 'package-lock.json'), {
-            verbatimSymlinks: true,
-        }));
-        if (errorWithCopyingDebugPackageLockJson) {
-            this.error(`Error copying debug package-lock.json: ${errorWithCopyingDebugPackageLockJson.message}`);
+        // find the available lock files
+        const [errorWithStatingFiles, lockFilesInfo] = await safely(Promise.all(LOCK_FILES.map((lockFile) => fs.stat(path.resolve(projectDirPath, lockFile)).then((stats) => ({
+            isFile: stats.isFile(),
+            filePath: lockFile
+        }), () => false as const))));
+        if (errorWithStatingFiles) {
+            this.error(`Error checking lock files: ${errorWithStatingFiles.message}`);
+        }
+
+        const existingLockFileInfo = lockFilesInfo.find((lockFileInfo) => lockFileInfo !== false && lockFileInfo.isFile);
+        if (!existingLockFileInfo) {
+            this.error(`Lock file not found: ${LOCK_FILES.join(', ')}`);
+        }
+
+        // copy the lock files to the debug directory
+        for (const lockFileInfo of lockFilesInfo) {
+            if (!lockFileInfo) {
+                continue;
+            }
+
+            const [errorWithCopyingLockFile] = await safely(fs.cp(path.join(projectDirPath, lockFileInfo.filePath), path.join(tildaDebugDirPath, lockFileInfo.filePath), {
+                dereference: true,
+            }));
+            if (errorWithCopyingLockFile) {
+                this.error(`Error copying lock file: ${errorWithCopyingLockFile.message}`);
+            }
         }
 
         const buildMetaData: BuildMetadata = {
@@ -209,7 +235,7 @@ export default class Build extends BaseCommand<typeof Build> {
         }
 
         // zip everything in .tilda directory
-        const zip = new AdmnZip();
+        const zip = new JSZip();
         const [errorWithReadingFiles, filesInTildaDir] = await safely(fs.readdir(path.join(projectDirPath, '.tilda'), {
             recursive: true,
             withFileTypes: true,
@@ -225,18 +251,43 @@ export default class Build extends BaseCommand<typeof Build> {
 
             const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
             const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
+
+            if (entry.isSymbolicLink()) {
+                const [errorWithReadingLink, linkTarget] = await safely(fs.readlink(fileAbsolutePath));
+                if (errorWithReadingLink) {
+                    this.error(`Error reading symbolic link: ${errorWithReadingLink.message}`);
+                }
+
+                zip.file(relativePath, Buffer.from(linkTarget), {
+                    unixPermissions: 0o12_0755,
+                });
+                continue;
+            }
+
             const [errorWithReadingFile, fileContents] = await safely(fs.readFile(fileAbsolutePath));
             if (errorWithReadingFile) {
                 this.error(`Error reading file to add to zip: ${errorWithReadingFile.message}`);
             }
 
-            zip.addFile(relativePath, fileContents);
+            zip.file(relativePath, fileContents);
+        }
+
+        const [errorWithWritingZipFile, zipBuffer] = await safely(zip.generateAsync({
+            platform: 'UNIX',
+            type: 'nodebuffer',
+            compression: 'DEFLATE',
+            compressionOptions: {
+                level: 9,
+            }
+        }));
+        if (errorWithWritingZipFile) {
+            this.error(`Error writing zip file: ${errorWithWritingZipFile.message}`);
         }
 
         const zipFilePath = path.join(tildaDirPath, 'package.zip');
-        const [errorWithWritingZipFile] = await safely(zip.writeZipPromise(zipFilePath));
-        if (errorWithWritingZipFile) {
-            this.error(`Error writing zip file: ${errorWithWritingZipFile.message}`);
+        const [errorWithWritingZipBuffer] = await safely(fs.writeFile(zipFilePath, zipBuffer));
+        if (errorWithWritingZipBuffer) {
+            this.error(`Error writing zip buffer: ${errorWithWritingZipBuffer.message}`);
         }
 
         this.log('Build complete');

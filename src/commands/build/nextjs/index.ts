@@ -8,6 +8,7 @@ import * as cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as semver from 'semver';
 import {CommandError} from "@oclif/core/interfaces";
+import { parse as parseYaml } from 'yaml'
 import {safely} from "../../../lib/utils.js";
 import {BaseCommand} from "../../../baseCommand.js";
 import {PackageLockJsonSchema} from "../../../lib/schemas.js";
@@ -19,6 +20,11 @@ const CONFIG_FILES = [
     'next.config.mjs',
     'next.config.ts',
 ]
+
+const LOCK_FILES = [
+    'package-lock.json',
+    'pnpm-lock.yaml',
+] as const;
 
 export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
     static description = 'Build Next.js project'
@@ -92,32 +98,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             this.error(`Error parsing package.json: ${errorWithParsingPackageJson.message}`);
         }
 
-        const packageLockJsonFilePath = path.resolve(projectDirPath, 'package-lock.json');
-        const [errorWithReadingPackageLockJson, packageLockJsonText] = await safely(fs.readFile(packageLockJsonFilePath, 'utf8'));
-        if (errorWithReadingPackageLockJson) {
-            this.error(`Error reading package-lock.json: ${errorWithReadingPackageLockJson.message}`);
-        }
-
-        const [errorWithParsingPackageLockJson, packageLockJson] = await safely(() => JSON.parse(packageLockJsonText));
-        if (errorWithParsingPackageLockJson) {
-            this.error(`Error parsing package-lock.json: ${errorWithParsingPackageLockJson.message}`);
-        }
-
-        const [errorWithValidatingPackageLockJson, packageLock] = await safely(PackageLockJsonSchema.parseAsync(packageLockJson));
-        if (errorWithValidatingPackageLockJson) {
-            this.error(`Error validating package-lock.json: ${errorWithValidatingPackageLockJson.message}`);
-        }
-
-        if (packageLock?.lockfileVersion !== 3) {
-            console.warn('Unsupported package-lock.json version', packageLock.lockfileVersion);
-        }
-
-        const packageNext = packageLockJson?.packages['node_modules/next'];
-        const frameworkVersionRaw = packageNext?.version;
-        if (!frameworkVersionRaw) {
-            this.error('Next.js version not found in package-lock.json');
-        }
-
+        const frameworkVersionRaw = await this.findNextJsVersion(projectDirPath);
         const [errorWithMinVersionParsing, frameworkVersionMin] = await safely(() => semver.minVersion(frameworkVersionRaw || ''));
         if (errorWithMinVersionParsing) {
             this.error(format('Failed to parse framework version for Next.js', frameworkVersionRaw, errorWithMinVersionParsing));
@@ -315,6 +296,87 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
 
         return null;
+    }
+
+    async findNextJsVersion(projectDirPath: string) {
+        // find the right lock file
+        const [errorWithStatingFiles, lockFilesInfo] = await safely(Promise.all(LOCK_FILES.map((lockFile) => fs.stat(path.resolve(projectDirPath, lockFile)).then((stats) => ({
+            isFile: stats.isFile(),
+            filePath: lockFile
+        }), () => false as const))));
+        if (errorWithStatingFiles) {
+            this.error(`Error checking lock files: ${errorWithStatingFiles.message}`);
+        }
+
+        const existingLockFileInfo = lockFilesInfo.find((lockFileInfo) => lockFileInfo !== false && lockFileInfo.isFile);
+        if (!existingLockFileInfo) {
+            this.error(`Lock file not found: ${LOCK_FILES.join(', ')}`);
+        }
+
+        const lockFilePath = path.resolve(projectDirPath, existingLockFileInfo.filePath);
+        this.log('Found lock file:', lockFilePath);
+        const lockFileName = path.basename(lockFilePath);
+
+        const [errorWithReadingLockFile, lockFileText] = await safely(fs.readFile(lockFilePath, 'utf8'));
+        if (errorWithReadingLockFile) {
+            this.error(`Error reading lock file (${lockFilePath}): ${errorWithReadingLockFile.message}`);
+        }
+
+        if (lockFileName === 'package-lock.json') {
+            const [errorWithParsingPackageLockJson, packageLockJson] = await safely(() => JSON.parse(lockFileText));
+            if (errorWithParsingPackageLockJson) {
+                this.error(`Error parsing package-lock.json: ${errorWithParsingPackageLockJson.message}`);
+            }
+
+            const [errorWithValidatingPackageLockJson, packageLock] = await safely(PackageLockJsonSchema.parseAsync(packageLockJson));
+            if (errorWithValidatingPackageLockJson) {
+                this.error(`Error validating package-lock.json: ${errorWithValidatingPackageLockJson.message}`);
+            }
+
+            if (packageLock?.lockfileVersion !== 3) {
+                console.warn('Unsupported package-lock.json version', packageLock.lockfileVersion);
+            }
+
+            const packageNext = packageLockJson?.packages['node_modules/next'];
+            const frameworkVersionRaw = packageNext?.version;
+            if (!frameworkVersionRaw) {
+                this.error('Next.js version not found in package-lock.json');
+            }
+
+            return frameworkVersionRaw;
+        }
+
+        if (lockFileName === 'pnpm-lock.yaml') {
+            const [errorWithParsingPnpmLockYaml, pnpmLockYaml] = await safely(() => parseYaml(lockFileText));
+            if (errorWithParsingPnpmLockYaml) {
+                this.error(`Error parsing pnpm-lock.yaml: ${errorWithParsingPnpmLockYaml.message}`);
+            }
+
+            if (!pnpmLockYaml) {
+                this.error('Invalid pnpm-lock.yaml');
+            }
+
+            const lockFileVersion = pnpmLockYaml.lockfileVersion;
+            if (lockFileVersion !== "9.0") {
+                console.warn('Unsupported pnpm-lock.yaml version', lockFileVersion);
+            }
+
+            const nextjsPackageDefinitionName = Object.keys(pnpmLockYaml.packages).find((packageName) => packageName.startsWith('next@'));
+            if (!nextjsPackageDefinitionName) {
+                this.error('Next.js package ("next") not found in pnpm-lock.yaml dependencies');
+            }
+
+            const [, nextJsPackageVersionRaw] = nextjsPackageDefinitionName.split('@');
+            if (!nextJsPackageVersionRaw) {
+                this.error('Next.js version not found in pnpm-lock.yaml');
+            }
+
+            return nextJsPackageVersionRaw;
+        }
+
+        this.error(format('Support for lock file', lockFileName, 'not implemented'), {
+            code: 'UNSUPPORTED_LOCK_FILE'
+        });
     }
 }
 

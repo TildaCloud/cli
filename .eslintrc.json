@@ -16,6 +16,7 @@
     "no-async-promise-executor": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/ban-ts-comment": "warn",
-    "unicorn/filename-case": "off"
+    "unicorn/filename-case": "off",
+    "unicorn/prefer-spread": "off"
   }
 }

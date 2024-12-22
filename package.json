@@ -14,11 +14,13 @@
     "@trpc/client": "^11.0.0-rc.477",
     "@vercel/nft": "^0.27.4",
     "adm-zip": "^0.5.16",
+    "jszip": "^3.10.1",
     "resolve-from": "^5.0.0",
     "resolve-global": "^2.0.0",
     "semver": "^7.6.3",
     "ts-import": "^5.0.0-beta.0",
     "undici": "^6.19.8",
+    "yaml": "^2.6.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
