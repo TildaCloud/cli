@@ -3,6 +3,7 @@ import {Blob} from 'node:buffer'
 import {FormData, fetch} from 'undici'
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import {format} from "node:util";
 import {safely} from "../../lib/utils.js";
 import {BaseCommand} from "../../baseCommand.js";
 
@@ -90,7 +91,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
         this.debug('Uploaded package', uploadResponse);
 
         this.debug('Creating version');
-        const [errorWithCreatingVersion, versionResponse] = await safely(this.apiClient.createComputeServiceVersion.mutate({
+        const [errorWithCreatingVersion, versionResponseFeed] = await safely(this.apiClient.createComputeServiceVersion.mutate({
             projectId: packageUploadUrlResponse.projectId,
             serviceId: packageUploadUrlResponse.serviceId,
             uploadToken: packageUploadUrlResponse.uploadToken,
@@ -100,9 +101,8 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
             this.error(`Error creating version: ${errorWithCreatingVersion.message}`);
         }
 
-        this.debug('Created version', versionResponse);
-        const deployedHostnames = versionResponse?.routingConfig?.hostnames?.map((h: string) => `https://${h}/`)
-        this.log('Deployed version');
-        this.log(deployedHostnames.join('\n'))
+        for await (const chunk of versionResponseFeed) {
+            this.log(format(chunk));
+        }
     }
 }

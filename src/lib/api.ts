@@ -1,5 +1,6 @@
 import * as crypto from 'node:crypto'
-import {type CreateTRPCClient, createTRPCClient, httpBatchLink} from "@trpc/client";
+// eslint-disable-next-line camelcase
+import {type CreateTRPCClient, createTRPCClient, unstable_httpBatchStreamLink} from "@trpc/client";
 // @ts-ignore: TS6059
 // eslint-disable-next-line import/no-unresolved
 import {AppRouter} from "@site/src/routes/api/[any]/router.js";
@@ -13,7 +14,7 @@ export const getTrpcClient = (origin: string, privateKey: crypto.KeyObject, keyI
 
     trpcClient = createTRPCClient<AppRouter>({
         links: [
-            httpBatchLink({
+            unstable_httpBatchStreamLink({
                 url: new URL('/api/', origin).toString(),
                 async fetch(...params) {
                     const request = new Request(...params);

@@ -11,7 +11,7 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
-    "@trpc/client": "^11.0.0-rc.477",
+    "@trpc/client": "^11.0.0-rc.666",
     "@vercel/nft": "^0.27.4",
     "adm-zip": "^0.5.16",
     "jszip": "^3.10.1",
