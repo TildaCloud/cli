@@ -5,6 +5,7 @@ import JSZip from "jszip";
 import {nodeFileTrace} from '@vercel/nft';
 import {safely} from "../../lib/utils.js";
 import {BaseCommand} from "../../baseCommand.js";
+import { BuildMetadata } from '../../lib/schemas.js';
 
 const LOCK_FILES = [
     'package-lock.json',
@@ -291,12 +292,5 @@ export default class Build extends BaseCommand<typeof Build> {
         }
 
         this.log('Build complete');
-    }
-}
-
-type BuildMetadata = {
-    v1: {
-        nodeJsVersion: string
-        serverEntryFilePathRelativeToComputeDir: string
     }
 }

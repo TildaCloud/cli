@@ -25,3 +25,10 @@ export const InlineIdentityJsonSchema = z.object({
     privateKey: z.string(),
     keyId: z.number(),
 });
+
+export type BuildMetadata = {
+    v1: {
+        nodeJsVersion: string
+        serverEntryFilePathRelativeToComputeDir: string | undefined
+    }
+}
