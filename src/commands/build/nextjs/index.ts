@@ -194,8 +194,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
         // write the modified config file
         const [errorWithWritingConfigFile] = await safely(fs.writeFile(configFilePath, isConfigFileAModule ?
-            `${tildaConfigFileComment}\nimport config from ${JSON.stringify('./' + originalConfigFilePath)};\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} }, images: { ...${JSON.stringify(nextJsConfigOverwrites.images)}, ...config.images } };\nexport default newConfig;` :
-            `${tildaConfigFileComment}\nconst config = require(${JSON.stringify('./' + originalConfigFilePath)});\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} }, images: { ...${JSON.stringify(nextJsConfigOverwrites.images)}, ...config.images } };\nmodule.exports = newConfig;`));
+            `${tildaConfigFileComment}\nimport config from ${JSON.stringify('./' + originalConfigFilePath)};\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} }, };\nexport default newConfig;` :
+            `${tildaConfigFileComment}\nconst config = require(${JSON.stringify('./' + originalConfigFilePath)});\nconst newConfig = { ...config, ...${JSON.stringify(nextJsConfigOverwrites)}, experimental: { ...config.experimental, ...${JSON.stringify(nextJsConfigOverwrites.experimental)} }, };\nmodule.exports = newConfig;`));
         if (errorWithWritingConfigFile) {
             this.error(`Error writing config file: ${errorWithWritingConfigFile.message}`);
         }
