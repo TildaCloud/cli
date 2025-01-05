@@ -110,7 +110,7 @@ export default class Build extends BaseCommand<typeof Build> {
         }
 
         const tildaBuildStaticDirPath = path.join(projectDirPath, '.tilda', 'static');
-        const tildaBuildComputeDirPath = path.join(projectDirPath, '.tilda', 'compute');
+        const tildaBuildComputeDirPath = path.join(projectDirPath, '.tilda', 'compute', path.basename(serverDirPath));
         const tildaDebugDirPath = path.join(projectDirPath, '.tilda', 'debug');
 
         if (rootStaticDirPath) {
@@ -217,7 +217,7 @@ export default class Build extends BaseCommand<typeof Build> {
 
         const buildMetaData: BuildMetadata = {
             v1: {
-                serverEntryFilePathRelativeToServerDir: path.relative(serverDirPath, serverEntryFilePath),
+                serverEntryFilePathRelativeToComputeDir: path.join(path.basename(serverDirPath), path.relative(serverDirPath, serverEntryFilePath)),
                 nodeJsVersion: process.version,
             }
         }
@@ -296,7 +296,7 @@ export default class Build extends BaseCommand<typeof Build> {
 
 type BuildMetadata = {
     v1: {
-        serverEntryFilePathRelativeToServerDir: string
         nodeJsVersion: string
+        serverEntryFilePathRelativeToComputeDir: string
     }
 }
