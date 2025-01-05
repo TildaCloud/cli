@@ -153,9 +153,6 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
         this.debug(format('Chosen cache handler:', chosenNextJsCacheHandlerPath));
 
-        const nextJsImageLoaderFilePath = path.join(path.dirname(chosenNextJsCacheHandlerPath), 'nextjs-image-loader.mjs');
-        this.debug('Copying image loader file:', nextJsImageLoaderFilePath);
-
         // copy nextJsCacheHandler to projectDirPath/.node_modules/.tilda/nextJsCacheHandler.{mjs,cjs}
         const nextJsTildaAssetsDir = path.resolve(projectDirPath, 'node_modules/.tilda');
         const cacheHandlerFileName = path.basename(chosenNextJsCacheHandlerPath);
@@ -167,16 +164,6 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const [errorWithCopyingCacheHandlerFile] = await safely(fs.copyFile(chosenNextJsCacheHandlerPath, nextJsCacheHandlerFilePath));
         if (errorWithCopyingCacheHandlerFile) {
             this.error(`Error copying cache handler file: ${errorWithCopyingCacheHandlerFile.message}`);
-        }
-
-        const [errorWithCopyingImageLoaderFile] = await safely(fs.copyFile(nextJsImageLoaderFilePath, path.resolve(nextJsTildaAssetsDir, 'nextjs-image-loader.mjs')));
-        if (errorWithCopyingImageLoaderFile) {
-            this.error(`Error copying image loader file: ${errorWithCopyingImageLoaderFile.message}`);
-        }
-
-        nextJsConfigOverwrites.images = {
-            loader: 'custom',
-            loaderFile: path.relative(projectDirPath, nextJsImageLoaderFilePath),
         }
 
         // Apply Next.js 14.1 + related config changes
