@@ -109,7 +109,7 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
         const tildaDirPath = path.join(projectDirPath, '.tilda');
 
         // remove the tilda dir if it exists
-        await safely(fs.rm(tildaDirPath, {recursive: true, force: true}));
+        await safely(fs.rm(tildaDirPath, { recursive: true, force: true }));
 
         // create the tilda dir
         const [errorWithCreatingTildaDir] = await safely(fs.mkdir(tildaDirPath, {
