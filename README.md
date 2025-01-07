@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.33.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.34.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -30,6 +30,7 @@ USAGE
 # Commands
 <!-- commands -->
 * [`tilda build`](#tilda-build)
+* [`tilda build astro`](#tilda-build-astro)
 * [`tilda build nextjs`](#tilda-build-nextjs)
 * [`tilda build static`](#tilda-build-static)
 * [`tilda deploy`](#tilda-deploy)
@@ -73,7 +74,32 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.33.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/index.ts)_
+
+## `tilda build astro`
+
+Build an Astro project
+
+```
+USAGE
+  $ tilda build astro --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
+    [--inlineIdentityJson <value>]
+
+FLAGS
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --buildCommand=<value>        (required) [default: npm run build] Astro build command
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
+  --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
+                                directory
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Build an Astro project
+```
+
+_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/astro/index.ts)_
 
 ## `tilda build nextjs`
 
@@ -98,7 +124,7 @@ DESCRIPTION
   Build Next.js project
 ```
 
-_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.33.0/src/commands/build/nextjs/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/nextjs/index.ts)_
 
 ## `tilda build static`
 
@@ -107,7 +133,7 @@ Build a static website
 ```
 USAGE
   $ tilda build static --apiOrigin <value> --projectDir <value> --buildCommand <value> --rootStaticDir <value>
-    [--json] [--inlineIdentityJson <value>]
+    [--json] [--inlineIdentityJson <value>] [--skipAppBuild]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
@@ -116,6 +142,7 @@ FLAGS
   --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
                                 directory
   --rootStaticDir=<value>       (required) Relative path to static files directory that will be served from root (/)
+  --skipAppBuild                Skip running build command
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -124,7 +151,7 @@ DESCRIPTION
   Build a static website
 ```
 
-_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.33.0/src/commands/build/static/index.ts)_
+_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/static/index.ts)_
 
 ## `tilda deploy`
 
@@ -150,7 +177,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.33.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/deploy/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -191,7 +218,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.33.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -213,7 +240,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.33.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
