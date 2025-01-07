@@ -1,4 +1,4 @@
-import {z} from 'zod';
+import { z } from 'zod';
 
 export const CliConfigSchema = z.object({
     v1: z.object({
@@ -26,9 +26,25 @@ export const InlineIdentityJsonSchema = z.object({
     keyId: z.number(),
 });
 
-export type BuildMetadata = {
-    v1: {
-        nodeJsVersion: string
-        serverEntryFilePathRelativeToComputeDir: string | undefined
-    }
-}
+export const TildaDeploymentMetadataSchema = z.object({
+    v2: z.object({
+        serverEntryFilePathRelativeToComputeDir: z.string().optional(),
+        nodeJsVersion: z.string(),
+        tildaCliVersion: z.string().optional(),
+        framework: z.string().optional(),
+        frameworkVersion: z.string().optional(),
+        routes: z.array(z.object({
+            criteria: z.object({
+                path: z.object({
+                    exact: z.string().optional(),
+                    prefix: z.string().optional(),
+                    oneOf: z.array(z.string()).min(1, 'At least one path is required in path.oneOf').max(100, 'Too many paths in path.oneOf').optional(),
+                })
+            }),
+            action: z.object({
+                origin: z.enum(['compute', 'static']),
+                originPath: z.string().optional(),
+            }),
+        })),
+    }),
+});

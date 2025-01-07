@@ -1,11 +1,12 @@
-import {Flags} from '@oclif/core'
+import { Flags } from '@oclif/core'
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import JSZip from "jszip";
-import {nodeFileTrace} from '@vercel/nft';
-import {safely} from "../../lib/utils.js";
-import {BaseCommand} from "../../baseCommand.js";
-import { BuildMetadata } from '../../lib/schemas.js';
+import { infer as ZInfer } from 'zod'
+import { nodeFileTrace } from '@vercel/nft';
+import { safely } from "../../lib/utils.js";
+import { BaseCommand } from "../../baseCommand.js";
+import { TildaDeploymentMetadataSchema } from '../../lib/schemas.js';
 
 const LOCK_FILES = [
     'package-lock.json',
@@ -16,7 +17,7 @@ export default class Build extends BaseCommand<typeof Build> {
     static description = 'Build the application'
 
     static flags = {
-        serverDir: Flags.string({description: 'Relative path to server files directory', required: true}),
+        serverDir: Flags.string({ description: 'Relative path to server files directory', required: true }),
         rootStaticDir: Flags.string({
             description: 'Relative path to static files directory that will be served from root (/)',
             required: false
@@ -25,12 +26,12 @@ export default class Build extends BaseCommand<typeof Build> {
             description: 'Relative path to static files directory that will be served from relative path with "." replaced with "_"',
             required: false
         }),
-        projectDir: Flags.string({description: 'Relative path project directory', required: true}),
-        serverEntryFile: Flags.string({description: 'Relative path to server entry file', required: true}),
+        projectDir: Flags.string({ description: 'Relative path project directory', required: true }),
+        serverEntryFile: Flags.string({ description: 'Relative path to server entry file', required: true }),
     }
 
     async run(): Promise<void> {
-        const {args, flags} = await this.parse(Build)
+        const { args, flags } = await this.parse(Build)
 
         const projectDirPath = path.resolve(flags.projectDir);
         const serverDirPath = path.resolve(flags.serverDir);
@@ -216,27 +217,8 @@ export default class Build extends BaseCommand<typeof Build> {
             }
         }
 
-        const buildMetaData: BuildMetadata = {
-            v1: {
-                serverEntryFilePathRelativeToComputeDir: path.join(path.basename(serverDirPath), path.relative(serverDirPath, serverEntryFilePath)),
-                nodeJsVersion: process.version,
-            }
-        }
-
         const tildaDirPath = path.join(projectDirPath, '.tilda');
 
-        // write build metadata to .tilda directory
-        const metadataFilePath = path.join(tildaDirPath, 'metadata.json');
-
-        this.debug('metadataFilePath', metadataFilePath);
-
-        const [errorWithWritingMetadata] = await safely(fs.writeFile(metadataFilePath, JSON.stringify(buildMetaData, null, 2)));
-        if (errorWithWritingMetadata) {
-            this.error(`Error writing build metadata: ${errorWithWritingMetadata.message}`);
-        }
-
-        // zip everything in .tilda directory
-        const zip = new JSZip();
         const [errorWithReadingFiles, filesInTildaDir] = await safely(fs.readdir(path.join(projectDirPath, '.tilda'), {
             recursive: true,
             withFileTypes: true,
@@ -244,6 +226,100 @@ export default class Build extends BaseCommand<typeof Build> {
         if (errorWithReadingFiles) {
             this.error(`Error reading files in .tilda directory: ${errorWithReadingFiles.message}`);
         }
+
+        const computeFiles = filesInTildaDir
+            .filter((entry) => {
+                const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
+                const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
+                return entry.isFile() && relativePath.startsWith('compute/');
+            });
+
+        const staticFiles = filesInTildaDir
+            .filter((entry) => {
+                const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
+                const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
+                return entry.isFile() && relativePath.startsWith('static/');
+            });
+
+        const buildMetadata: ZInfer<typeof TildaDeploymentMetadataSchema> = {
+            v2: {
+                nodeJsVersion: process.version,
+                serverEntryFilePathRelativeToComputeDir: path.join(path.basename(serverDirPath), path.relative(serverDirPath, serverEntryFilePath)),
+                routes: [
+                    ...(staticFiles
+                        .map((entry): ZInfer<typeof TildaDeploymentMetadataSchema>['v2']['routes'][0] => {
+                            const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
+                            const pathRelativeToStaticDir = path.relative(path.join(tildaDirPath, 'static'), fileAbsolutePath);
+
+                            const routePath = path.join('/', pathRelativeToStaticDir);
+
+                            if (path.basename(fileAbsolutePath) === 'index.html') {
+                                return {
+                                    criteria: {
+                                        path: {
+                                            oneOf: [routePath, routePath.replace(/\/index\.html$/, ''), routePath.replace(/\/index\.html$/, '/')],
+                                        }
+                                    },
+                                    action: {
+                                        origin: 'static',
+                                        originPath: routePath,
+                                    }
+                                }
+                            }
+
+                            if (path.extname(fileAbsolutePath) === '.html') {
+                                return {
+                                    criteria: {
+                                        path: {
+                                            oneOf: [routePath, routePath.replace(/\.html$/, '')],
+                                        }
+                                    },
+                                    action: {
+                                        origin: 'static',
+                                        originPath: routePath,
+                                    }
+                                }
+                            }
+
+                            return {
+                                criteria: {
+                                    path: {
+                                        exact: routePath,
+                                    }
+                                },
+                                action: {
+                                    origin: 'static',
+                                }
+                            }
+                        })
+                    ),
+                    ...(computeFiles.length > 0 ? [{
+                        criteria: {
+                            path: {
+                                prefix: '/',
+                            }
+                        },
+                        action: {
+                            origin: 'compute',
+                        }
+                    }] : []
+                    )
+                ],
+            }
+        }
+
+        // write build metadata to .tilda directory
+        const metadataFilePath = path.join(tildaDirPath, 'metadata.json');
+
+        this.debug('metadataFilePath', metadataFilePath);
+
+        const [errorWithWritingMetadata] = await safely(fs.writeFile(metadataFilePath, JSON.stringify(buildMetadata, null, 2)));
+        if (errorWithWritingMetadata) {
+            this.error(`Error writing build metadata: ${errorWithWritingMetadata.message}`);
+        }
+
+        // zip everything in .tilda directory
+        const zip = new JSZip();
 
         for (const entry of filesInTildaDir) {
             if (entry.isDirectory()) {
@@ -272,6 +348,7 @@ export default class Build extends BaseCommand<typeof Build> {
 
             zip.file(relativePath, fileContents);
         }
+        zip.file('metadata.json', Buffer.from(JSON.stringify(buildMetadata, null, 2)));
 
         const [errorWithWritingZipFile, zipBuffer] = await safely(zip.generateAsync({
             platform: 'UNIX',
