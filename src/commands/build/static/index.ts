@@ -32,6 +32,10 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
             description: 'Relative path to static files directory that will be served from root (/)',
             required: true,
         }),
+        skipAppBuild: Flags.boolean({
+            description: 'Skip running build command',
+            default: false,
+        }),
     }
 
     private configFilePaths: undefined | { original: string, config: string };
@@ -73,20 +77,22 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
             this.error(`Error parsing package.json: ${errorWithParsingPackageJson.message}`);
         }
 
-        this.log('Running build command:', JSON.stringify(buildCommand), 'in', projectDirPath);
-        const buildProgram = buildCommandParts[0];
-        const buildArgs = buildCommandParts.slice(1);
+        if (!flags.skipAppBuild) {
+            this.log('Running build command:', JSON.stringify(buildCommand), 'in', projectDirPath);
+            const buildProgram = buildCommandParts[0];
+            const buildArgs = buildCommandParts.slice(1);
 
-        const [errorWithBuildCommand] = await safely(() => cp.execFileSync(buildProgram, buildArgs, {
-            cwd: projectDirPath,
-            stdio: 'inherit',
-            env: { ...process.env }
-        }));
-        if (errorWithBuildCommand) {
-            this.error(`Error running build command: ${errorWithBuildCommand.message}`);
+            const [errorWithBuildCommand] = await safely(() => cp.execFileSync(buildProgram, buildArgs, {
+                cwd: projectDirPath,
+                stdio: 'inherit',
+                env: { ...process.env }
+            }));
+            if (errorWithBuildCommand) {
+                this.error(`Error running build command: ${errorWithBuildCommand.message}`);
+            }
+
+            this.log('Application build complete');
         }
-
-        this.log('Application build complete');
 
         this.log('Building Tilda package');
 
