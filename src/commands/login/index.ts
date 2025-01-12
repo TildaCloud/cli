@@ -88,12 +88,12 @@ export default class Login extends BaseCommand<typeof Login> {
 
         let publicKeyId: number | undefined = undefined;
         do {
-            const [errorWithMeRequest, receivedPublicKeyId] = await safely(unauthenticatedApiClient.getPublicKeyId.query({
+            const [errorWithPublicKeyRequest, receivedPublicKeyId] = await safely(unauthenticatedApiClient.getPublicKeyId.query({
                 publicKey: publicKeyPem,
             }));
-            if (errorWithMeRequest || !receivedPublicKeyId) {
-                if (errorWithMeRequest) {
-                    this.log(`Error requesting me: ${errorWithMeRequest.message}`);
+            if (errorWithPublicKeyRequest || !receivedPublicKeyId) {
+                if (errorWithPublicKeyRequest) {
+                    this.log(`Error requesting public key: ${errorWithPublicKeyRequest.message}`);
                 }
 
                 await new Promise(resolve => setTimeout(resolve, 1000));
