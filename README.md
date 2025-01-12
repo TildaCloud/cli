@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.34.0 darwin-arm64 node-v20.12.2
+@tildacloud/cli/0.35.0 darwin-arm64 node-v20.12.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -34,6 +34,7 @@ USAGE
 * [`tilda build nextjs`](#tilda-build-nextjs)
 * [`tilda build static`](#tilda-build-static)
 * [`tilda deploy`](#tilda-deploy)
+* [`tilda deployment-key create`](#tilda-deployment-key-create)
 * [`tilda help [COMMAND]`](#tilda-help-command)
 * [`tilda login`](#tilda-login)
 * [`tilda logout`](#tilda-logout)
@@ -74,7 +75,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/build/index.ts)_
 
 ## `tilda build astro`
 
@@ -99,7 +100,7 @@ DESCRIPTION
   Build an Astro project
 ```
 
-_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/astro/index.ts)_
+_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/build/astro/index.ts)_
 
 ## `tilda build nextjs`
 
@@ -124,7 +125,7 @@ DESCRIPTION
   Build Next.js project
 ```
 
-_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/nextjs/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/build/nextjs/index.ts)_
 
 ## `tilda build static`
 
@@ -151,7 +152,7 @@ DESCRIPTION
   Build a static website
 ```
 
-_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/build/static/index.ts)_
+_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/build/static/index.ts)_
 
 ## `tilda deploy`
 
@@ -177,7 +178,31 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/deploy/index.ts)_
+
+## `tilda deployment-key create`
+
+Create a deployment key
+
+```
+USAGE
+  $ tilda deployment-key create --apiOrigin <value> --project <value> [--json] [--inlineIdentityJson <value>] [--site
+    <value>]
+
+FLAGS
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
+  --project=<value>             (required) Project slug
+  --site=<value>                Site slug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Create a deployment key
+```
+
+_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/deployment-key/create/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -218,7 +243,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -240,7 +265,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.34.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.35.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
