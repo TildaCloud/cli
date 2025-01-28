@@ -89,6 +89,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
             this.error(`Error uploading package: ${uploadError?.message}`);
         }
         this.debug('Uploaded package', uploadResponse);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         this.debug('Creating version');
         const [errorWithCreatingVersion, versionResponseFeed] = await safely(this.apiClient.createComputeServiceVersion.mutate({
