@@ -1,11 +1,11 @@
-import {Flags} from '@oclif/core'
-import {type Stats} from "node:fs";
+import { Flags } from '@oclif/core'
+import { type Stats } from "node:fs";
 import * as path from 'node:path';
 import * as cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
-import {CommandError} from "@oclif/core/interfaces";
-import {safely} from "../../../lib/utils.js";
-import {BaseCommand} from "../../../baseCommand.js";
+import { CommandError } from "@oclif/core/interfaces";
+import { safely } from "../../../lib/utils.js";
+import { BaseCommand } from "../../../baseCommand.js";
 import BuildCommand from '../index.js'
 
 export default class BuildSvelte extends BaseCommand<typeof BuildSvelte> {
@@ -25,7 +25,7 @@ export default class BuildSvelte extends BaseCommand<typeof BuildSvelte> {
     }
 
     async run(): Promise<void> {
-        const {flags} = await this.parse(BuildSvelte)
+        const { flags } = await this.parse(BuildSvelte)
 
         const projectDirPath = path.resolve(flags.projectDir);
         this.log(`Building project at`, projectDirPath);
@@ -57,7 +57,7 @@ export default class BuildSvelte extends BaseCommand<typeof BuildSvelte> {
         const [errorWithBuildCommand] = await safely(() => cp.execFileSync(buildProgram, buildArgs, {
             cwd: projectDirPath,
             stdio: 'inherit',
-            env: {...process.env}
+            env: { GCP_BUILDPACKS: 'tilda', ...process.env }
         }));
         if (errorWithBuildCommand) {
             this.error(`Error running build command: ${errorWithBuildCommand.message}`);
