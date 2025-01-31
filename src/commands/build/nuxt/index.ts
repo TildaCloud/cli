@@ -1,5 +1,4 @@
 import { Flags } from '@oclif/core'
-import { format } from "node:util";
 import { type Stats } from "node:fs";
 import * as path from 'node:path';
 import * as cp from 'node:child_process';
