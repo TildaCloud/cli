@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.39.0 darwin-arm64 node-v20.18.2
+@tildacloud/cli/0.40.0 darwin-arm64 node-v20.18.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -34,6 +34,7 @@ USAGE
 * [`tilda build nextjs`](#tilda-build-nextjs)
 * [`tilda build nuxt`](#tilda-build-nuxt)
 * [`tilda build static`](#tilda-build-static)
+* [`tilda build svelte`](#tilda-build-svelte)
 * [`tilda deploy`](#tilda-deploy)
 * [`tilda deployment-key create`](#tilda-deployment-key-create)
 * [`tilda help [COMMAND]`](#tilda-help-command)
@@ -76,7 +77,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/build/index.ts)_
 
 ## `tilda build astro`
 
@@ -101,7 +102,7 @@ DESCRIPTION
   Build an Astro project
 ```
 
-_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/build/astro/index.ts)_
+_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/build/astro/index.ts)_
 
 ## `tilda build nextjs`
 
@@ -126,7 +127,7 @@ DESCRIPTION
   Build Next.js project
 ```
 
-_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/build/nextjs/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/build/nextjs/index.ts)_
 
 ## `tilda build nuxt`
 
@@ -151,7 +152,7 @@ DESCRIPTION
   Build Nuxt project
 ```
 
-_See code: [src/commands/build/nuxt/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/build/nuxt/index.ts)_
+_See code: [src/commands/build/nuxt/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/build/nuxt/index.ts)_
 
 ## `tilda build static`
 
@@ -178,7 +179,32 @@ DESCRIPTION
   Build a static website
 ```
 
-_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/build/static/index.ts)_
+_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/build/static/index.ts)_
+
+## `tilda build svelte`
+
+Build Svelte project
+
+```
+USAGE
+  $ tilda build svelte --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
+    [--inlineIdentityJson <value>]
+
+FLAGS
+  --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --buildCommand=<value>        (required) [default: npm run build] Svelte build command
+  --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
+  --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
+                                directory
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Build Svelte project
+```
+
+_See code: [src/commands/build/svelte/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/build/svelte/index.ts)_
 
 ## `tilda deploy`
 
@@ -204,7 +230,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/deploy/index.ts)_
 
 ## `tilda deployment-key create`
 
@@ -228,7 +254,7 @@ DESCRIPTION
   Create a deployment key
 ```
 
-_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/deployment-key/create/index.ts)_
+_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/deployment-key/create/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -269,7 +295,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -291,7 +317,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.39.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.40.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
