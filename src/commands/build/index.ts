@@ -162,6 +162,26 @@ export default class Build extends BaseCommand<typeof Build> {
                 continue;
             }
             if (dependency === path.relative(projectDirPath, path.join(projectDirPath, 'package.json'))) {
+                // check if package.json has a type field
+                const packageJsonFilePath = path.resolve(projectDirPath, 'package.json');
+                const [errorWithReadingPackageJson, packageJsonText] = await safely(fs.readFile(packageJsonFilePath, 'utf8'));
+                if (errorWithReadingPackageJson) {
+                    this.error(`Error reading package.json: ${errorWithReadingPackageJson.message}`);
+                }
+                const [errorWithParsingPackageJson, packageJson] = await safely(() => JSON.parse(packageJsonText));
+                if (errorWithParsingPackageJson) {
+                    this.error(`Error parsing package.json: ${errorWithParsingPackageJson.message}`);
+                }
+                if (!packageJson.type) {
+                    continue;
+                }
+                // write a new package.json file that only has a type field
+                const newPackageJsonText = JSON.stringify({type: packageJson.type}, null, 2);
+                const newPackageJsonFilePath = path.join(tildaBuildComputeDirPath, 'package.json');
+                const [errorWithWritingNewPackageJson] = await safely(() => fs.writeFile(newPackageJsonFilePath, newPackageJsonText));
+                if (errorWithWritingNewPackageJson) {
+                    this.error(`Error writing new package.json: ${errorWithWritingNewPackageJson.message}`);
+                }
                 continue;
             }
 
