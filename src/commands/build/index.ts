@@ -20,7 +20,8 @@ export default class Build extends BaseCommand<typeof Build> {
         serverDir: Flags.string({ description: 'Relative path to server files directory', required: true }),
         rootStaticDir: Flags.string({
             description: 'Relative path to static files directory that will be served from root (/)',
-            required: false
+            required: false,
+            multiple: true,
         }),
         underscoreNamedStaticDir: Flags.string({
             description: 'Relative path to static files directory that will be served from relative path with "." replaced with "_"',
@@ -35,7 +36,7 @@ export default class Build extends BaseCommand<typeof Build> {
 
         const projectDirPath = path.resolve(flags.projectDir);
         const serverDirPath = path.resolve(flags.serverDir);
-        const rootStaticDirPath = flags.rootStaticDir ? path.resolve(flags.rootStaticDir) : undefined;
+        const rootStaticDirPaths = flags.rootStaticDir?.map(dir => path.resolve(dir)) || [];
         const underscoreNamedStaticDirPath = flags.underscoreNamedStaticDir ? path.resolve(flags.underscoreNamedStaticDir) : undefined;
         const serverEntryFilePath = path.resolve(flags.serverEntryFile);
 
@@ -57,14 +58,16 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Server directory does not exist: ${serverDirPath}`);
         }
 
-        if (rootStaticDirPath) {
-            // ensure the root static directory exists
-            const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(rootStaticDirPath));
-            if (errorWithCheckingStaticDirStats) {
-                this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
-            }
-            if (!staticDirStats.isDirectory()) {
-                this.error(`Static directory does not exist: ${rootStaticDirPath}`);
+        if (rootStaticDirPaths.length) {
+            for (const rootStaticDirPath of rootStaticDirPaths) {
+                // ensure the root static directory exists
+                const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(rootStaticDirPath));
+                if (errorWithCheckingStaticDirStats) {
+                    this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
+                }
+                if (!staticDirStats.isDirectory()) {
+                    this.error(`Static directory does not exist: ${rootStaticDirPath}`);
+                }
             }
         }
 
@@ -115,14 +118,19 @@ export default class Build extends BaseCommand<typeof Build> {
         const tildaBuildComputeDirPath = path.join(projectDirPath, '.tilda', 'compute', path.basename(serverDirPath));
         const tildaDebugDirPath = path.join(projectDirPath, '.tilda', 'debug');
 
-        if (rootStaticDirPath) {
-            this.debug('Copying root static files directories');
-            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {
-                recursive: true,
-                verbatimSymlinks: true,
-            }));
-            if (errorWithCopyingStaticFilesDir) {
-                this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+        if (rootStaticDirPaths.length) {
+            if (rootStaticDirPaths.length > 1) {
+                this.log('Multiple root static files directories specified. Some files may be overwritten.');
+            }
+            for (const rootStaticDirPath of rootStaticDirPaths) {
+                this.debug('Copying root static files directories');
+                const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {
+                    recursive: true,
+                    verbatimSymlinks: true,
+                }));
+                if (errorWithCopyingStaticFilesDir) {
+                    this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+                }
             }
         }
         if (underscoreNamedStaticDirPath) {
@@ -146,7 +154,7 @@ export default class Build extends BaseCommand<typeof Build> {
             this.error(`Error copying server files directory: ${errorWithCopyingServerFilesDir.message}`);
         }
 
-        const staticDirPathsRelativeToProjectDir = rootStaticDirPath ? path.relative(projectDirPath, rootStaticDirPath) : undefined;
+        const staticDirPathsRelativeToProjectDirs = rootStaticDirPaths.map(staticDirPath => path.relative(projectDirPath, staticDirPath));
         const underscoreNamedStaticDirPathRelativeToProjectDir = underscoreNamedStaticDirPath ? path.relative(projectDirPath, underscoreNamedStaticDirPath) : underscoreNamedStaticDirPath;
         const serverDirPathRelativeToProjectDir = path.relative(projectDirPath, serverDirPath);
 
@@ -155,7 +163,7 @@ export default class Build extends BaseCommand<typeof Build> {
             if (underscoreNamedStaticDirPathRelativeToProjectDir && dependency.startsWith(underscoreNamedStaticDirPathRelativeToProjectDir + '/')) {
                 continue;
             }
-            if (staticDirPathsRelativeToProjectDir && dependency.startsWith(staticDirPathsRelativeToProjectDir + '/')) {
+            if (staticDirPathsRelativeToProjectDirs.length && staticDirPathsRelativeToProjectDirs.some(staticDirPathRelativeToProjectDir => dependency.startsWith(staticDirPathRelativeToProjectDir + '/'))) {
                 continue;
             }
             if (dependency.startsWith(serverDirPathRelativeToProjectDir + '/')) {
@@ -176,7 +184,7 @@ export default class Build extends BaseCommand<typeof Build> {
                     continue;
                 }
                 // write a new package.json file that only has a type field
-                const newPackageJsonText = JSON.stringify({type: packageJson.type}, null, 2);
+                const newPackageJsonText = JSON.stringify({ type: packageJson.type }, null, 2);
                 const newPackageJsonFilePath = path.join(tildaBuildComputeDirPath, 'package.json');
                 const [errorWithWritingNewPackageJson] = await safely(() => fs.writeFile(newPackageJsonFilePath, newPackageJsonText));
                 if (errorWithWritingNewPackageJson) {
