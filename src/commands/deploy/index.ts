@@ -103,7 +103,11 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
         }
 
         for await (const chunk of versionResponseFeed) {
-            this.log(format(chunk));
+            if (chunk.log) {
+                this.log(chunk.log);
+            } else {
+                this.log(format(chunk))
+            }
         }
     }
 }
