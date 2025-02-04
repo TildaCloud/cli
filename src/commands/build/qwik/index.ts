@@ -3,7 +3,6 @@ import { type Stats } from "node:fs";
 import * as path from 'node:path';
 import * as cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
-import { CommandError } from "@oclif/core/interfaces";
 import { safely } from "../../../lib/utils.js";
 import { BaseCommand } from "../../../baseCommand.js";
 import BuildCommand from '../index.js'
@@ -57,13 +56,13 @@ export default class BuildQwik extends BaseCommand<typeof BuildQwik> {
         const [errorWithBuildCommand] = await safely(() => cp.execFileSync(buildProgram, buildArgs, {
             cwd: projectDirPath,
             stdio: 'inherit',
-            env: { GCP_BUILDPACKS: 'tilda', ...process.env }
+            env: { ...process.env }
         }));
         if (errorWithBuildCommand) {
             this.error(`Error running build command: ${errorWithBuildCommand.message}`);
         }
 
-        this.log('Qwik build complete');
+        this.log('Qwik City build complete');
 
         this.log('Building Tilda package');
 

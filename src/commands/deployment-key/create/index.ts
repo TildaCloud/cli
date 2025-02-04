@@ -7,10 +7,10 @@ import * as fs from 'node:fs/promises';
 import { format } from "node:util";
 import { safely } from "../../../lib/utils.js";
 import { BaseCommand } from "../../../baseCommand.js";
-import {createTRPCClient, httpBatchLink} from "@trpc/client";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
 // @ts-ignore: TS6059
 // eslint-disable-next-line import/no-unresolved
-import {AppRouter} from "@site/src/routes/api/[any]/router.js";
+import { AppRouter } from "@site/src/routes/api/[any]/router.js";
 
 export default class GenerateDeploymentCreate extends BaseCommand<typeof GenerateDeploymentCreate> {
     static description = 'Create a deployment key'
@@ -32,8 +32,8 @@ export default class GenerateDeploymentCreate extends BaseCommand<typeof Generat
         this.log('Generating key pair for deployment...');
 
         // create private public key pair
-        const {publicKey, privateKey} = crypto.generateKeyPairSync('ec', {namedCurve: 'secp256k1'});
-        const publicKeyPem = publicKey.export({type: 'spki', format: 'pem'}).toString();
+        const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'secp256k1' });
+        const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
 
         this.log('Requesting registration of newly generated deployment key');
         this.log(publicKeyPem);
@@ -81,7 +81,7 @@ export default class GenerateDeploymentCreate extends BaseCommand<typeof Generat
             this.error('Error getting public key');
         }
 
-        const privateKeyPem = privateKey.export({type: 'pkcs8', format: 'pem'}).toString();
+        const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
         this.log('Deployment key created successfully!');
         this.log('Use the following TILDA_CLI_INLINE_IDENTITY_JSON environment variable to use this key for deployment. This is a sensitive value and should be kept private.');
         this.log('');
