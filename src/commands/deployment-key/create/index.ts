@@ -93,7 +93,7 @@ export default class GenerateDeploymentCreate extends BaseCommand<typeof Generat
         this.log("For contexts where you need to escape quotes, e.g. JavaScript, shell, etc., use:")
         this.log(`TILDA_CLI_INLINE_IDENTITY_JSON=${JSON.stringify(encodedJsonIdentity)}`);
         this.log('');
-        this.log('For context where you don\'t need to escape quotes, e.g. Github Secrets and Variables settings, Tilda Environment Variables:');
+        this.log('For context where you don\'t need to escape quotes, e.g. Github Secrets and Variables settings, Gitlab CI/CD UI, etc., use:');
         this.log(`Key: TILDA_CLI_INLINE_IDENTITY_JSON`);
         this.log(`Value: ${encodedJsonIdentity}`);
     }
