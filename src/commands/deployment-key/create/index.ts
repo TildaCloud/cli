@@ -83,12 +83,18 @@ export default class GenerateDeploymentCreate extends BaseCommand<typeof Generat
 
         const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
         this.log('Deployment key created successfully!');
-        this.log('Use the following TILDA_CLI_INLINE_IDENTITY_JSON environment variable to use this key for deployment. This is a sensitive value and should be kept private.');
+        this.log('');
+        this.log('Use the following environment variable to use this key for deployment. This is a sensitive value and should be kept private.');
         this.log('');
         const encodedJsonIdentity = JSON.stringify({
             privateKey: privateKeyPem,
             keyId: publicKeyId,
         });
+        this.log("For contexts where you need to escape quotes, e.g. JavaScript, shell, etc., use:")
         this.log(`TILDA_CLI_INLINE_IDENTITY_JSON=${JSON.stringify(encodedJsonIdentity)}`);
+        this.log('');
+        this.log('For context where you don\'t need to escape quotes, e.g. Github Sections and Variables settings, Tilda Environment Variables:');
+        this.log(`Key: TILDA_CLI_INLINE_IDENTITY_JSON`);
+        this.log(`Value: ${encodedJsonIdentity}`);
     }
 }
