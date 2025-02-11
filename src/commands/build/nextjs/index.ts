@@ -166,11 +166,13 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             this.error(`Error copying cache handler file: ${errorWithCopyingCacheHandlerFile.message}`);
         }
 
-        // Apply Next.js 14.1 + related config changes
-        if (nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) {
+        if ((nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) || nextJsMajorVersion > 14) {
             nextJsConfigOverwrites.cacheHandler = nextJsCacheHandlerFilePath;
+        }
+        if (nextJsMajorVersion === 14 && nextJsMinorVersion >= 1) {
             nextJsConfigOverwrites.experimental.swrDelta = 60 * 60 * 24 * 30 * 12; // 1 year
-        } else if (nextJsMajorVersion === 13 || (nextJsMajorVersion === 14 && nextJsMinorVersion < 1)) {
+        }
+        if (nextJsMajorVersion === 13 || (nextJsMajorVersion === 14 && nextJsMinorVersion < 1)) {
             nextJsConfigOverwrites.experimental.incrementalCacheHandlerPath = nextJsCacheHandlerFilePath;
         }
 
