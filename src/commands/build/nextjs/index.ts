@@ -220,13 +220,27 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
         this.log('Next.js build complete');
         await this.restoreConfigFile();
-
-        this.log('Building Tilda package');
-
+        
         const serverDir = path.resolve(projectDirPath, '.next/standalone');
         const serverEntryFile = path.resolve(serverDir, 'server.js');
         const rootStaticDir = path.resolve(projectDirPath, 'public');
 
+        this.log('Patching Next.js server');
+        const [errorWithReadingBaseServerJs, baseServerJsText] = await safely(() => fs.readFile(path.resolve(serverDir, 'node_modules/next/dist/server/base-server.js'), 'utf8'));
+        if (errorWithReadingBaseServerJs) {
+            this.error(`Error reading Next.js server file: ${errorWithReadingBaseServerJs.message}`);
+        }
+
+        const patchedBaseServerJsText = baseServerJsText
+        .replaceAll(/headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);/g, '//$0 //replaced by Tilda')
+        .replaceAll(/delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];/g, '//$0 //replaced by Tilda');
+
+        const [errorWithWritingBaseServerJs] = await safely(() => fs.writeFile(path.resolve(serverDir, 'node_modules/next/dist/server/base-server.js'), patchedBaseServerJsText));
+        if (errorWithWritingBaseServerJs) {
+            this.error(`Error writing Next.js server file: ${errorWithWritingBaseServerJs.message}`);
+        }
+        
+        this.log('Building Tilda package');
         // check if root static dir exists
         const [errorWithRootStaticDirStats, rootStaticDirStats] = await safely<Stats, {
             code?: string,
