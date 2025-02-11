@@ -235,6 +235,11 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         .replaceAll(/headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);/g, '//$0 //replaced by Tilda')
         .replaceAll(/delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];/g, '//$0 //replaced by Tilda');
 
+        const replacementTimes = patchedBaseServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
+        if (replacementTimes < 2) {
+            this.error('Failed to patch Next.js server file. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
+        }
+
         const [errorWithWritingBaseServerJs] = await safely(() => fs.writeFile(path.resolve(serverDir, 'node_modules/next/dist/server/base-server.js'), patchedBaseServerJsText));
         if (errorWithWritingBaseServerJs) {
             this.error(`Error writing Next.js server file: ${errorWithWritingBaseServerJs.message}`);
