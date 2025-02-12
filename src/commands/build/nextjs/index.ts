@@ -232,8 +232,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
 
         const patchedBaseServerJsText = baseServerJsText
-        .replaceAll(/headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);/g, '//$0 //replaced by Tilda')
-        .replaceAll(/delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];/g, '//$0 //replaced by Tilda');
+        .replaceAll(/(headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);)/g, '//$1 //replaced by Tilda')
+        .replaceAll(/(delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];)/g, '//$1 //replaced by Tilda');
 
         const replacementTimes = patchedBaseServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
         if (replacementTimes < 2) {
