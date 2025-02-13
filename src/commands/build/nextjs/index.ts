@@ -1,19 +1,19 @@
-import {Flags} from '@oclif/core'
-import {format} from "node:util";
-import {silent as resolveFrom} from 'resolve-from';
-import {resolveGlobal} from 'resolve-global';
-import {type Stats} from "node:fs";
+import { Flags } from '@oclif/core'
+import { format } from "node:util";
+import { silent as resolveFrom } from 'resolve-from';
+import { resolveGlobal } from 'resolve-global';
+import { type Stats } from "node:fs";
 import * as path from 'node:path';
 import * as cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as semver from 'semver';
-import {CommandError} from "@oclif/core/interfaces";
+import { CommandError } from "@oclif/core/interfaces";
 import { parse as parseYaml } from 'yaml'
-import {safely} from "../../../lib/utils.js";
-import {BaseCommand} from "../../../baseCommand.js";
-import {PackageLockJsonSchema} from "../../../lib/schemas.js";
+import { safely } from "../../../lib/utils.js";
+import { BaseCommand } from "../../../baseCommand.js";
+import { PackageLockJsonSchema } from "../../../lib/schemas.js";
 import BuildCommand from '../index.js'
-import { type NextConfig  } from 'next'
+import { type NextConfig } from 'next'
 
 const CONFIG_FILES = [
     'next.config.js',
@@ -45,7 +45,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
     private configFilePaths: undefined | { original: string, config: string };
 
     async run(): Promise<void> {
-        const {args, flags} = await this.parse(BuildNextJs)
+        const { args, flags } = await this.parse(BuildNextJs)
 
         const projectDirPath = path.resolve(flags.projectDir);
         this.log(`Building project at`, projectDirPath);
@@ -157,7 +157,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const nextJsTildaAssetsDir = path.resolve(projectDirPath, 'node_modules/.tilda');
         const cacheHandlerFileName = path.basename(chosenNextJsCacheHandlerPath);
         const nextJsCacheHandlerFilePath = path.resolve(nextJsTildaAssetsDir, cacheHandlerFileName);
-        const [errorWithCreatingTildaAssetsDir] = await safely(fs.mkdir(nextJsTildaAssetsDir, {recursive: true}));
+        const [errorWithCreatingTildaAssetsDir] = await safely(fs.mkdir(nextJsTildaAssetsDir, { recursive: true }));
         if (errorWithCreatingTildaAssetsDir) {
             this.error(`Error creating node_modules/.tilda directory: ${errorWithCreatingTildaAssetsDir.message}`);
         }
@@ -188,7 +188,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         if (errorWithCopyingConfigFile) {
             this.error(`Error copying config file: ${errorWithCopyingConfigFile.message}`);
         }
-        this.configFilePaths = {original: originalConfigFilePath, config: configFilePath};
+        this.configFilePaths = { original: originalConfigFilePath, config: configFilePath };
 
         const tildaConfigFileComment = '// eslint-disable-next-line @typescript-eslint/ban-ts-comment\n' +
             '// @ts-nocheck\n' +
@@ -212,7 +212,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const [errorWithBuildCommand] = await safely(() => cp.execFileSync(buildProgram, buildArgs, {
             cwd: projectDirPath,
             stdio: 'inherit',
-            env: {...process.env}
+            env: { ...process.env }
         }));
         if (errorWithBuildCommand) {
             this.error(`Error running build command: ${errorWithBuildCommand.message}`);
@@ -220,7 +220,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
         this.log('Next.js build complete');
         await this.restoreConfigFile();
-        
+
         const serverDir = path.resolve(projectDirPath, '.next/standalone');
         const serverEntryFile = path.resolve(serverDir, 'server.js');
         const rootStaticDir = path.resolve(projectDirPath, 'public');
@@ -232,9 +232,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
 
         const patchedBaseServerJsText = baseServerJsText
-        .replaceAll(/(headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);)/g, '//$1 //replaced by Tilda')
-        .replaceAll(/(delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];)/g, '//$1 //replaced by Tilda')
-        .replaceAll(/this\.minimalMode && isSSG && (\(\(_cachedData_headers = cachedData\.headers\) == null \? void 0 : _cachedData_headers\[_constants\d*\.NEXT_CACHE_TAGS_HEADER]\))/g, '$1');
+            .replaceAll(/(headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);)/g, '//$1 //replaced by Tilda')
+            .replaceAll(/(delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];)/g, '//$1 //replaced by Tilda')
+            .replaceAll(/this\.minimalMode && isSSG && (\(\(_cachedData_headers = cachedData\.headers\) == null \? void 0 : _cachedData_headers\[_constants\d*\.NEXT_CACHE_TAGS_HEADER]\))/g, '$1');
 
         const replacementTimesForTagsHeader = patchedBaseServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
         if ((nextJsMajorVersion >= 14 && replacementTimesForTagsHeader < 2) || (nextJsMajorVersion < 14 && replacementTimesForTagsHeader < 1)) {
@@ -252,7 +252,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         }
 
         const patchedStartServerJsText = startServerJsText
-        .replace(/(async\s+function\s+requestListener\(req,\s*res\)\s*{)/g, '$1 //replaced by Tilda\nconst tildaRevalidate = globalThis.tilda?.cache?.purgeTags || ((path) => console.error(\'Tilda purgeTags is not available for\', path));\nObject.defineProperty(res, "revalidate", { configurable: false, enumerable: true, get: () => tildaRevalidate, set: () => tildaRevalidate });')
+            .replace(/(async\s+function\s+requestListener\(req,\s*res\)\s*{)/g, '$1 //replaced by Tilda\nconst tildaRevalidate = globalThis.tilda?.cache?.purgeTags || ((path) => console.error(\'Tilda purgeTags is not available for\', path));\nObject.defineProperty(res, "revalidate", { configurable: false, enumerable: true, get: () => tildaRevalidate, set: () => tildaRevalidate });')
 
         const replacementTimesForRevalidate = patchedStartServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
         if (replacementTimesForRevalidate < 1) {
