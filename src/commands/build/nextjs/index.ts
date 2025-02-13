@@ -236,8 +236,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         .replaceAll(/(delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];)/g, '//$1 //replaced by Tilda')
         .replaceAll(/this\.minimalMode && isSSG && (\(\(_cachedData_headers = cachedData\.headers\) == null \? void 0 : _cachedData_headers\[_constants\d*\.NEXT_CACHE_TAGS_HEADER]\))/g, '$1');
 
-        const replacementTimes = patchedBaseServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
-        if ((nextJsMajorVersion >= 14 && replacementTimes < 2) || (nextJsMajorVersion < 14 && replacementTimes < 1)) {
+        const replacementTimesForTagsHeader = patchedBaseServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
+        if ((nextJsMajorVersion >= 14 && replacementTimesForTagsHeader < 2) || (nextJsMajorVersion < 14 && replacementTimesForTagsHeader < 1)) {
             this.error('Failed to patch Next.js server file. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
         }
 
@@ -245,7 +245,25 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         if (errorWithWritingBaseServerJs) {
             this.error(`Error writing Next.js server file: ${errorWithWritingBaseServerJs.message}`);
         }
-        
+
+        const [errorWithReadingStartServerJs, startServerJsText] = await safely(() => fs.readFile(path.resolve(serverDir, 'node_modules/next/dist/server/lib/start-server.js'), 'utf8'));
+        if (errorWithReadingStartServerJs) {
+            this.error(`Error reading Next.js server file: ${errorWithReadingStartServerJs.message}`);
+        }
+
+        const patchedStartServerJsText = startServerJsText
+        .replace(/(async\s+function\s+requestListener\(req,\s*res\)\s*{)/g, '$1 //replaced by Tilda\nconst tildaRevalidate = globalThis.tilda?.cache?.purgeTags || ((path) => console.error(\'Tilda purgeTags is not available for\', path));\nObject.defineProperty(res, "revalidate", { configurable: false, enumerable: true, get: () => tildaRevalidate, set: () => tildaRevalidate });')
+
+        const replacementTimesForRevalidate = patchedStartServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
+        if (replacementTimesForRevalidate < 1) {
+            this.error('Failed to patch Next.js server file. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
+        }
+
+        const [errorWithWritingStartServerJs] = await safely(() => fs.writeFile(path.resolve(serverDir, 'node_modules/next/dist/server/lib/start-server.js'), patchedStartServerJsText));
+        if (errorWithWritingStartServerJs) {
+            this.error(`Error writing Next.js server file: ${errorWithWritingStartServerJs.message}`);
+        }
+
         this.log('Building Tilda package');
         // check if root static dir exists
         const [errorWithRootStaticDirStats, rootStaticDirStats] = await safely<Stats, {
