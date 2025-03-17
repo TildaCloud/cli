@@ -48,7 +48,7 @@ export default class GenerateDeploymentCreate extends BaseCommand<typeof Generat
         });
 
         const [errorWithRequestingRegistration, registrationRequestReply] = await safely(
-            unauthenticatedApiClient.requestRegistrationOfPublicKey.mutate({
+            unauthenticatedApiClient.publicKey.requestRegistrationOfPublicKey.mutate({
                 publicKey: publicKeyPem,
                 hashingAlgorithm: 'SHA256',
                 projectSlug: flags.project,
@@ -63,7 +63,7 @@ export default class GenerateDeploymentCreate extends BaseCommand<typeof Generat
 
         let publicKeyId: number | undefined = undefined;
         do {
-            const [errorWithPublicKeyRequest, receivedPublicKeyId] = await safely(unauthenticatedApiClient.getPublicKeyId.query({
+            const [errorWithPublicKeyRequest, receivedPublicKeyId] = await safely(unauthenticatedApiClient.publicKey.getPublicKeyId.query({
                 publicKey: publicKeyPem,
             }));
             if (errorWithPublicKeyRequest || !receivedPublicKeyId) {

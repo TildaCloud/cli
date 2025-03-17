@@ -55,7 +55,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
             this.error(`Build file is empty: ${tildaBuildFilePath}`);
         }
 
-        const [errorWithPackageUrl, packageUploadUrlResponse] = await safely(this.apiClient.getComputeServicePackageUploadUrl.mutate({
+        const [errorWithPackageUrl, packageUploadUrlResponse] = await safely(this.apiClient.deployment.getComputeServicePackageUploadUrl.mutate({
             projectSlug: flags.project,
             serviceSlug: flags.site,
             runtime: flags.runtime,
@@ -92,7 +92,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         this.debug('Creating version');
-        const [errorWithCreatingVersion, versionResponseFeed] = await safely(this.apiClient.createComputeServiceVersion.mutate({
+        const [errorWithCreatingVersion, versionResponseFeed] = await safely(this.apiClient.deployment.createComputeServiceVersion.mutate({
             projectId: packageUploadUrlResponse.projectId,
             serviceId: packageUploadUrlResponse.serviceId,
             uploadToken: packageUploadUrlResponse.uploadToken,

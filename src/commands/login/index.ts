@@ -1,21 +1,14 @@
-import {Args, Command, Flags} from '@oclif/core'
 import * as path from 'node:path';
 import {format} from 'node:util'
-import {z} from 'zod';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
-import {nodeFileTrace} from '@vercel/nft';
 import {safely} from "../../lib/utils.js";
 import {getTrpcClient} from "../../lib/api.js";
 import {createTRPCClient, httpBatchLink} from "@trpc/client";
 // @ts-ignore: TS6059
 // eslint-disable-next-line import/no-unresolved
 import {AppRouter} from "@site/src/routes/api/[any]/router.js";
-import {CliConfigSchema} from "../../lib/schemas.js";
 import {BaseCommand} from "../../baseCommand.js";
-
-const EnvXdgConfigHome = process.env.XDG_CONFIG_HOME!;
-const EnvHome = process.env.HOME!;
 
 export default class Login extends BaseCommand<typeof Login> {
     static description = 'Log in to Tilda'
@@ -75,7 +68,7 @@ export default class Login extends BaseCommand<typeof Login> {
         });
 
         const [errorWithRequestingRegistration, registrationRequestReply] = await safely(
-            unauthenticatedApiClient.requestRegistrationOfPublicKey.mutate({
+            unauthenticatedApiClient.publicKey.requestRegistrationOfPublicKey.mutate({
                 publicKey: publicKeyPem,
                 hashingAlgorithm: 'SHA256'
             }));
@@ -88,7 +81,7 @@ export default class Login extends BaseCommand<typeof Login> {
 
         let publicKeyId: number | undefined = undefined;
         do {
-            const [errorWithPublicKeyRequest, receivedPublicKeyId] = await safely(unauthenticatedApiClient.getPublicKeyId.query({
+            const [errorWithPublicKeyRequest, receivedPublicKeyId] = await safely(unauthenticatedApiClient.publicKey.getPublicKeyId.query({
                 publicKey: publicKeyPem,
             }));
             if (errorWithPublicKeyRequest || !receivedPublicKeyId) {
