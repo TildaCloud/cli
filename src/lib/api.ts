@@ -1,11 +1,10 @@
 import * as crypto from 'node:crypto'
-// eslint-disable-next-line camelcase
-import {type CreateTRPCClient, createTRPCClient, unstable_httpBatchStreamLink} from "@trpc/client";
+import {type TRPCClient, createTRPCClient, httpBatchStreamLink} from "@trpc/client";
 // @ts-ignore: TS6059
 // eslint-disable-next-line import/no-unresolved
 import {AppRouter} from "@site/src/routes/api/[any]/router.js";
 
-let trpcClient: CreateTRPCClient<AppRouter>;
+let trpcClient: TRPCClient<AppRouter>;
 
 export const getTrpcClient = (origin: string, privateKey: crypto.KeyObject, keyId: number): typeof trpcClient => {
     if (trpcClient) {
@@ -14,7 +13,7 @@ export const getTrpcClient = (origin: string, privateKey: crypto.KeyObject, keyI
 
     trpcClient = createTRPCClient<AppRouter>({
         links: [
-            unstable_httpBatchStreamLink({
+            httpBatchStreamLink({
                 url: new URL('/api/', origin).toString(),
                 async fetch(...params) {
                     const request = new Request(...params);
