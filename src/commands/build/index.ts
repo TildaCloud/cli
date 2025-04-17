@@ -292,7 +292,7 @@ export default class Build extends BaseCommand<typeof Build> {
                                         origin: 'static',
                                         originPath: routePath,
                                     }
-                                }
+                                } as const;
                             }
 
                             if (path.extname(fileAbsolutePath) === '.html') {
@@ -306,7 +306,7 @@ export default class Build extends BaseCommand<typeof Build> {
                                         origin: 'static',
                                         originPath: routePath,
                                     }
-                                }
+                                } as const;
                             }
 
                             return {
@@ -318,7 +318,7 @@ export default class Build extends BaseCommand<typeof Build> {
                                 action: {
                                     origin: 'static',
                                 }
-                            }
+                            } as const;
                         })
                     ),
                     ...(computeFiles.length > 0 ? [{
@@ -330,7 +330,7 @@ export default class Build extends BaseCommand<typeof Build> {
                         action: {
                             origin: 'compute',
                         }
-                    }] : []
+                    } as const] : []
                     )
                 ],
             }
