@@ -233,6 +233,10 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const serverDir = path.resolve(projectDirPath, '.next/standalone');
         const serverEntryFile = path.resolve(serverDir, 'server.js');
         const rootStaticDir = path.resolve(projectDirPath, 'public');
+        const tildaStageDirPath = path.join(projectDirPath, '.tilda', 'stage');
+
+        await fs.rm(tildaStageDirPath, { recursive: true, force: true });
+        await fs.mkdir(tildaStageDirPath, { recursive: true });
 
         const inlineRoutingConfig: z.infer<typeof InlineRoutingConfigSchema> = {
             routes: []
@@ -296,8 +300,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         this.error(`Error reading html file: ${errorWithReadingHtmlFile.message}`);
                     }
 
-                    // create a tilda progressive render file and place it in the root static dir for this path
-                    const tildaProgressiveRenderFilePath = path.join(rootStaticDir, path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.tildaprogressiverender.json');
+                    // create a tilda progressive render file and place it in the .tilda/stage directory for this path
+                    const tildaProgressiveRenderFilePath = path.join(tildaStageDirPath, path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverender.json');
                     const tildaProgressiveRenderFileText = JSON.stringify({
                         v1: {
                             status: meta.status,
@@ -335,7 +339,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         action: {
                             origin: 'static',
                             headers: prResponseHeaders,
-                            staticFileRelativePath: path.join(path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.tildaprogressiverender.json'),
+                            staticFileRelativePath: path.join(path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverender.json'),
                         },
                     })
                 }
@@ -375,8 +379,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         this.error(`Error reading html file: ${errorWithReadingHtmlFile.message}`);
                     }
 
-                    // create a tilda progressive render file and place it in the root static dir for this path
-                    const tildaProgressiveRenderFilePath = path.join(rootStaticDir, fallbackSourceRoute + '.tildaprogressiverender.json');
+                    // create a tilda progressive render file and place it in the .tilda/stage directory for this path
+                    const tildaProgressiveRenderFilePath = path.join(tildaStageDirPath, fallbackSourceRoute + '.progressiverender.json');
                     // ensure the directory exists
                     await fs.mkdir(path.dirname(tildaProgressiveRenderFilePath), { recursive: true });
                     const tildaProgressiveRenderFileText = JSON.stringify({
@@ -417,7 +421,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         action: {
                             origin: 'static',
                             headers: prResponseHeaders,
-                            staticFileRelativePath: fallbackSourceRoute + '.tildaprogressiverender.json',
+                            staticFileRelativePath: fallbackSourceRoute + '.progressiverender.json',
                         },
                     });
                 }
@@ -441,10 +445,12 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             '--serverEntryFile', serverEntryFile,
             '--underscoreNamedStaticDir', underscoreNamedStaticDir,
             ...(rootStaticDirStats?.isDirectory() ? ['--rootStaticDir', rootStaticDir] : []),
+            '--rootStaticDir', tildaStageDirPath,
             ...(inlineRoutingConfig.routes.length > 0 ? ['--routingConfigJson', JSON.stringify(inlineRoutingConfig)] : []),
             ...(featureFlags.length > 0 ? ['--featureFlag', ...featureFlags] : []),
             '--framework', 'nextjs',
             '--frameworkVersion', frameworkVersionRaw,
+            '--preserveStage',
         ]);
 
         this.log('Tilda package built');

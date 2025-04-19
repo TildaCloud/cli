@@ -33,7 +33,7 @@ export default class Deploy extends BaseCommand<typeof Deploy> {
             })
         }
 
-        const tildaBuildFilePath = path.resolve(flags.projectDir, '.tilda', 'package.zip');
+        const tildaBuildFilePath = path.resolve(flags.projectDir, '.tilda', 'build', 'package.zip');
         // check if build file exists
         const [errorWithCheckingBuildFileStats, buildFileStats] = await safely<Awaited<ReturnType<typeof fs.stat>>, {
             code: 'ENOENT',
