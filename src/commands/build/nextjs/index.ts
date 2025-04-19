@@ -11,9 +11,13 @@ import { CommandError } from "@oclif/core/interfaces";
 import { parse as parseYaml } from 'yaml'
 import { safely } from "../../../lib/utils.js";
 import { BaseCommand } from "../../../baseCommand.js";
-import { PackageLockJsonSchema } from "../../../lib/schemas.js";
+import { InlineRoutingConfigSchema, NextjsPrerenderManifestV4Schema, NextjsRouteMetaSchema, PackageLockJsonSchema } from "../../../lib/schemas.js";
+// @ts-ignore: TS6059
+// eslint-disable-next-line import/no-unresolved
+import { TildaProgressiveRenderFileFormat } from "@site/src/lib/schemas.js";
 import BuildCommand from '../index.js'
 import { type NextConfig } from 'next'
+import { z } from 'zod';
 
 const CONFIG_FILES = [
     'next.config.js',
@@ -40,6 +44,11 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             required: true,
             default: 'npm run build'
         }),
+        ppr: Flags.string({
+            description: 'Enable Next.js Partial Prerendering (PPR)',
+            options: ['15-canary-v1'],
+            required: false,
+        })
     }
 
     private configFilePaths: undefined | { original: string, config: string };
@@ -225,43 +234,194 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const serverEntryFile = path.resolve(serverDir, 'server.js');
         const rootStaticDir = path.resolve(projectDirPath, 'public');
 
-        this.log('Patching Next.js server');
-        const [errorWithReadingBaseServerJs, baseServerJsText] = await safely(() => fs.readFile(path.resolve(serverDir, 'node_modules/next/dist/server/base-server.js'), 'utf8'));
-        if (errorWithReadingBaseServerJs) {
-            this.error(`Error reading Next.js server file: ${errorWithReadingBaseServerJs.message}`);
-        }
+        const inlineRoutingConfig: z.infer<typeof InlineRoutingConfigSchema> = {
+            routes: []
+        };
 
-        const patchedBaseServerJsText = baseServerJsText
-            .replaceAll(/(headers\d*\.delete\(_constants\d*\.NEXT_CACHE_TAGS_HEADER\);)/g, '//$1 //replaced by Tilda')
-            .replaceAll(/(delete\s+headers\d*\[_constants\d*\.NEXT_CACHE_TAGS_HEADER\];)/g, '//$1 //replaced by Tilda')
-            .replaceAll(/this\.minimalMode && isSSG && (\(\(_cachedData_headers = cachedData\.headers\) == null \? void 0 : _cachedData_headers\[_constants\d*\.NEXT_CACHE_TAGS_HEADER]\))/g, '$1');
+        const featureFlags: string[] = [];
 
-        const replacementTimesForTagsHeader = patchedBaseServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
-        if ((nextJsMajorVersion >= 14 && replacementTimesForTagsHeader < 2) || (nextJsMajorVersion < 14 && replacementTimesForTagsHeader < 1)) {
-            this.error('Failed to patch Next.js server file. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
-        }
+        if (flags.ppr === '15-canary-v1') {
+            featureFlags.push('nextjs-15-canary-ppr-v1');
+            // Read prerender-manifest.json
+            const [errorWithReadingPrerenderManifest, prerenderManifestText] = await safely(fs.readFile(path.resolve(serverDir, '.next', 'prerender-manifest.json'), 'utf8'));
+            if (errorWithReadingPrerenderManifest) {
+                this.error(`Error reading prerender manifest: ${errorWithReadingPrerenderManifest.message}`);
+            }
 
-        const [errorWithWritingBaseServerJs] = await safely(() => fs.writeFile(path.resolve(serverDir, 'node_modules/next/dist/server/base-server.js'), patchedBaseServerJsText));
-        if (errorWithWritingBaseServerJs) {
-            this.error(`Error writing Next.js server file: ${errorWithWritingBaseServerJs.message}`);
-        }
+            const [errorWithJsonOfPrerenderManifest, JsonOfPrerenderManifest] = await safely(() => JSON.parse(prerenderManifestText));
+            if (errorWithJsonOfPrerenderManifest) {
+                this.error(`Error parsing prerender manifest: ${errorWithJsonOfPrerenderManifest.message}`);
+            }
 
-        const [errorWithReadingStartServerJs, startServerJsText] = await safely(() => fs.readFile(path.resolve(serverDir, 'node_modules/next/dist/server/lib/start-server.js'), 'utf8'));
-        if (errorWithReadingStartServerJs) {
-            this.error(`Error reading Next.js server file: ${errorWithReadingStartServerJs.message}`);
-        }
+            const [errorWithPrerenderManifest, prerenderManifest] = await safely(NextjsPrerenderManifestV4Schema.parseAsync(JsonOfPrerenderManifest));
+            if (errorWithPrerenderManifest) {
+                this.error(`Error parsing prerender manifest: ${errorWithPrerenderManifest.message}`);
+            }
 
-        const patchedStartServerJsText = startServerJsText
-            .replace(/(async\s+function\s+requestListener\(req,\s*res\)\s*{)/g, '$1 //replaced by Tilda\nconst tildaRevalidate = globalThis.tilda?.cache?.purgeTags || ((path) => console.error(\'Tilda purgeTags is not available for\', path));\nObject.defineProperty(res, "revalidate", { configurable: false, enumerable: true, get: () => tildaRevalidate, set: () => tildaRevalidate });')
+            for (const [, { renderingMode, srcRoute, dataRoute, experimentalPPR }] of Object.entries(prerenderManifest.routes)) {
+                if (renderingMode === 'PARTIALLY_STATIC') {
+                    if (!experimentalPPR) {
+                        this.error('Encountered a route that is partially static but does not have experimentalPPR enabled. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
+                    }
 
-        const replacementTimesForRevalidate = patchedStartServerJsText.match(/\/\/replaced by Tilda/g)?.length || 0;
-        if (replacementTimesForRevalidate < 1) {
-            this.error('Failed to patch Next.js server file. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
-        }
+                    if (!dataRoute) {
+                        this.error('Encountered a route that is partially static but does not have a data route. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
+                    }
 
-        const [errorWithWritingStartServerJs] = await safely(() => fs.writeFile(path.resolve(serverDir, 'node_modules/next/dist/server/lib/start-server.js'), patchedStartServerJsText));
-        if (errorWithWritingStartServerJs) {
-            this.error(`Error writing Next.js server file: ${errorWithWritingStartServerJs.message}`);
+                    // Meta file for this route
+                    const metaFilePath = path.join(serverDir, '.next', 'server', "app", path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.meta');
+                    const [errorWithReadingMetaFile, metaFileText] = await safely(fs.readFile(metaFilePath, 'utf8'));
+                    if (errorWithReadingMetaFile) {
+                        this.error(`Error reading meta file: ${errorWithReadingMetaFile.message}`);
+                    }
+
+                    const [errorWithJsonOfMetaFile, jsonOfMetaFile] = await safely(() => JSON.parse(metaFileText));
+                    if (errorWithJsonOfMetaFile) {
+                        this.error(`Error parsing meta file: ${errorWithJsonOfMetaFile.message}`);
+                    }
+
+                    const [errorWithMeta, meta] = await safely(NextjsRouteMetaSchema.parseAsync(jsonOfMetaFile));
+                    if (errorWithMeta) {
+                        this.error(`Error parsing meta file: ${errorWithMeta.message}`);
+                    }
+
+                    if (!meta.postponed) {
+                        this.error(format('Postponed data not found for route', srcRoute));
+                    }
+
+                    const htmlFilePath = path.resolve(path.dirname(metaFilePath), path.basename(metaFilePath, path.extname(metaFilePath)) + '.html');
+
+                    const [errorWithReadingHtmlFile, htmlFileText] = await safely(fs.readFile(htmlFilePath, 'utf8'));
+                    if (errorWithReadingHtmlFile) {
+                        this.error(`Error reading html file: ${errorWithReadingHtmlFile.message}`);
+                    }
+
+                    // create a tilda progressive render file and place it in the root static dir for this path
+                    const tildaProgressiveRenderFilePath = path.join(rootStaticDir, path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.tildaprogressiverender.json');
+                    const tildaProgressiveRenderFileText = JSON.stringify({
+                        v1: {
+                            status: meta.status,
+                            headers: { ...meta.headers, 'content-type': 'text/html; charset=utf-8' },
+                            body: [
+                                { text: htmlFileText },
+                                {
+                                    remoteBody: {
+                                        relativeUrl: '$$requestRelativeUrl$$',
+                                        forwardRequestHeaders: true,
+                                        additionalHeaders: {
+                                            'next-resume': '1',
+                                            'tilda-internal-next-matched-path': '$$requestPath$$',
+                                            'content-type': 'text/plain',
+                                        },
+                                        method: 'POST',
+                                        body: meta.postponed,
+                                    }
+                                }
+                            ]
+                        }
+                    } as TildaProgressiveRenderFileFormat, null, 2);
+                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, tildaProgressiveRenderFileText));
+                    if (errorWithWritingTildaProgressiveRenderFile) {
+                        this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderFile.message}`);
+                    }
+
+                    const prResponseHeaders: [string, string][] = [['tilda-progressive-render', '1'], ['content-type', 'application/json']];
+                    if (meta.headers['x-next-cache-tags']) {
+                        prResponseHeaders.push(['x-next-cache-tags', meta.headers['x-next-cache-tags']]);
+                    }
+
+                    inlineRoutingConfig.routes.push({
+                        criteria: { path: { exact: srcRoute }, method: ['GET', 'HEAD'] },
+                        action: {
+                            origin: 'static',
+                            headers: prResponseHeaders,
+                            staticFileRelativePath: path.join(path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.tildaprogressiverender.json'),
+                        },
+                    })
+                }
+            }
+
+            for (const [, { renderingMode, experimentalPPR, fallbackSourceRoute, routeRegex }] of Object.entries(prerenderManifest.dynamicRoutes)) {
+                if (renderingMode === 'PARTIALLY_STATIC') {
+                    if (!experimentalPPR) {
+                        this.error('Encountered a route that is partially static but does not have experimentalPPR enabled. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
+                    }
+
+                    // Meta file for this route
+                    const metaFilePath = path.join(serverDir, '.next', 'server', "app", fallbackSourceRoute + '.meta');
+                    const [errorWithReadingMetaFile, metaFileText] = await safely(fs.readFile(metaFilePath, 'utf8'));
+                    if (errorWithReadingMetaFile) {
+                        this.error(`Error reading meta file: ${errorWithReadingMetaFile.message}`);
+                    }
+
+                    const [errorWithJsonOfMetaFile, jsonOfMetaFile] = await safely(() => JSON.parse(metaFileText));
+                    if (errorWithJsonOfMetaFile) {
+                        this.error(`Error parsing meta file: ${errorWithJsonOfMetaFile.message}`);
+                    }
+
+                    const [errorWithMeta, meta] = await safely(NextjsRouteMetaSchema.parseAsync(jsonOfMetaFile));
+                    if (errorWithMeta) {
+                        this.error(`Error parsing meta file: ${errorWithMeta.message}`);
+                    }
+
+                    if (!meta.postponed) {
+                        this.error(format('Postponed data not found for route', fallbackSourceRoute));
+                    }
+
+                    const htmlFilePath = path.resolve(path.dirname(metaFilePath), path.basename(metaFilePath, path.extname(metaFilePath)) + '.html');
+
+                    const [errorWithReadingHtmlFile, htmlFileText] = await safely(fs.readFile(htmlFilePath, 'utf8'));
+                    if (errorWithReadingHtmlFile) {
+                        this.error(`Error reading html file: ${errorWithReadingHtmlFile.message}`);
+                    }
+
+                    // create a tilda progressive render file and place it in the root static dir for this path
+                    const tildaProgressiveRenderFilePath = path.join(rootStaticDir, fallbackSourceRoute + '.tildaprogressiverender.json');
+                    // ensure the directory exists
+                    await fs.mkdir(path.dirname(tildaProgressiveRenderFilePath), { recursive: true });
+                    const tildaProgressiveRenderFileText = JSON.stringify({
+                        v1: {
+                            route: { pathRegex: routeRegex },
+                            status: meta.status,
+                            headers: { ...meta.headers, 'content-type': 'text/html; charset=utf-8' },
+                            body: [
+                                { text: htmlFileText },
+                                {
+                                    remoteBody: {
+                                        relativeUrl: '$$requestRelativeUrl$$',
+                                        forwardRequestHeaders: true,
+                                        additionalHeaders: {
+                                            'next-resume': '1',
+                                            'tilda-internal-next-matched-path': '$$requestPath$$',
+                                            'content-type': 'text/plain',
+                                        },
+                                        method: 'POST',
+                                        body: meta.postponed,
+                                    }
+                                }
+                            ]
+                        }
+                    } as TildaProgressiveRenderFileFormat, null, 2);
+                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, tildaProgressiveRenderFileText));
+                    if (errorWithWritingTildaProgressiveRenderFile) {
+                        this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderFile.message}`);
+                    }
+
+                    const prResponseHeaders: [string, string][] = [['tilda-progressive-render', '1'], ['content-type', 'application/json']];
+                    if (meta.headers['x-next-cache-tags']) {
+                        prResponseHeaders.push(['x-next-cache-tags', meta.headers['x-next-cache-tags']]);
+                    }
+
+                    inlineRoutingConfig.routes.push({
+                        criteria: { path: { regex: routeRegex }, method: ['GET', 'HEAD'] },
+                        action: {
+                            origin: 'static',
+                            headers: prResponseHeaders,
+                            staticFileRelativePath: fallbackSourceRoute + '.tildaprogressiverender.json',
+                        },
+                    });
+                }
+            }
         }
 
         this.log('Building Tilda package');
@@ -280,7 +440,11 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             '--serverDir', serverDir,
             '--serverEntryFile', serverEntryFile,
             '--underscoreNamedStaticDir', underscoreNamedStaticDir,
-            ...(rootStaticDirStats?.isDirectory() ? ['--rootStaticDir', rootStaticDir] : [])
+            ...(rootStaticDirStats?.isDirectory() ? ['--rootStaticDir', rootStaticDir] : []),
+            ...(inlineRoutingConfig.routes.length > 0 ? ['--routingConfigJson', JSON.stringify(inlineRoutingConfig)] : []),
+            ...(featureFlags.length > 0 ? ['--featureFlag', ...featureFlags] : []),
+            '--framework', 'nextjs',
+            '--frameworkVersion', frameworkVersionRaw,
         ]);
 
         this.log('Tilda package built');

@@ -1,12 +1,13 @@
 import { Flags } from '@oclif/core'
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import { format } from "node:util";
 import JSZip from "jszip";
 import { infer as ZInfer } from 'zod'
 import { nodeFileTrace } from '@vercel/nft';
 import { safely } from "../../lib/utils.js";
 import { BaseCommand } from "../../baseCommand.js";
-import { TildaDeploymentMetadataSchema } from '../../lib/schemas.js';
+import { InlineRoutingConfigSchema, TildaDeploymentMetadataSchema } from '../../lib/schemas.js';
 
 const LOCK_FILES = [
     'package-lock.json',
@@ -29,6 +30,10 @@ export default class Build extends BaseCommand<typeof Build> {
         }),
         projectDir: Flags.string({ description: 'Relative path project directory', required: true }),
         serverEntryFile: Flags.string({ description: 'Relative path to server entry file', required: true }),
+        routingConfigJson: Flags.string({ description: 'Inline JSON of routing config', required: false, default: '{"routes":[]}' }),
+        featureFlag: Flags.string({ description: 'Feature flag', required: false, multiple: true, }),
+        framework: Flags.string({ description: 'Framework name', required: true, }),
+        frameworkVersion: Flags.string({ description: 'Framework version', required: true, }),
     }
 
     async run(): Promise<void> {
@@ -262,18 +267,42 @@ export default class Build extends BaseCommand<typeof Build> {
                 return entry.isFile() && relativePath.startsWith('compute/');
             });
 
+        const [errorWithParsingInlineConfigAsJson, jsonOfInlineConfig] = await safely(() => JSON.parse(flags.routingConfigJson));
+        if (errorWithParsingInlineConfigAsJson) {
+            this.error(`Error parsing inline routing config: ${errorWithParsingInlineConfigAsJson.message}`);
+        }
+
+        const [errorWithParsingInlineRoutingConfig, inlineRoutingConfig] = await safely(InlineRoutingConfigSchema.parseAsync(jsonOfInlineConfig))
+        if (errorWithParsingInlineRoutingConfig) {
+            this.error(`Error parsing inline routing config: ${errorWithParsingInlineRoutingConfig.message}`);
+        }
+
         const staticFiles = filesInTildaDir
             .filter((entry) => {
                 const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
                 const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
-                return entry.isFile() && relativePath.startsWith('static/');
+                const relativeStaticPath = path.join('/', path.relative(path.join(tildaDirPath, 'static'), fileAbsolutePath));
+                return entry.isFile() && relativePath.startsWith('static/') && !inlineRoutingConfig.routes.some(route => route.action.staticFileRelativePath === relativeStaticPath);
             });
+
+        
+        const [errorWithParsingFeatureFlags, featureFlags] = await safely(TildaDeploymentMetadataSchema.shape.v2.shape.featureFlags.parseAsync(flags.featureFlag));
+        if (errorWithParsingFeatureFlags) {
+            this.error(`Error parsing feature flags: ${errorWithParsingFeatureFlags.message}`);
+        }
 
         const buildMetadata: ZInfer<typeof TildaDeploymentMetadataSchema> = {
             v2: {
                 nodeJsVersion: process.version,
                 serverEntryFilePathRelativeToComputeDir: path.join(path.basename(serverDirPath), path.relative(serverDirPath, serverEntryFilePath)),
+                featureFlags: featureFlags,
+                framework: flags.framework,
+                frameworkVersion: flags.frameworkVersion,
                 routes: [
+                    ...(inlineRoutingConfig.routes.map(route => ({
+                        criteria: route.criteria,
+                        action: {...route.action, ...(route.action.staticFileRelativePath && { originPath: route.action.staticFileRelativePath, staticFileRelativePath: undefined })}
+                    } as const))),
                     ...(staticFiles
                         .map((entry): ZInfer<typeof TildaDeploymentMetadataSchema>['v2']['routes'][0] => {
                             const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
@@ -293,6 +322,10 @@ export default class Build extends BaseCommand<typeof Build> {
                                         originPath: routePath,
                                     }
                                 } as const;
+                            }
+
+                            if (fileAbsolutePath.endsWith('.tildaprogressiverender.json')) {
+                                this.error(format("Stray", JSON.stringify(pathRelativeToStaticDir), "file should've been accounted for in inline routing config"));
                             }
 
                             if (path.extname(fileAbsolutePath) === '.html') {
