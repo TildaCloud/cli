@@ -302,10 +302,17 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
 
                     // create a tilda progressive render file and place it in the .tilda/stage directory for this path
                     const tildaProgressiveRenderFilePath = path.join(tildaStageDirPath, path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverender.json');
-                    const tildaProgressiveRenderFileText = JSON.stringify({
+
+                    const headers: Record<string, string[]> = {};
+                    for (const [key, value] of Object.entries(meta.headers)) {
+                        headers[key] = [value];
+                    }
+                    headers['content-type'] = ['text/html; charset=utf-8'];
+
+                    const fileContent: TildaProgressiveRenderFileFormat = {
                         v1: {
                             status: meta.status,
-                            headers: { ...meta.headers, 'content-type': 'text/html; charset=utf-8' },
+                            headers,
                             body: [
                                 { text: htmlFileText },
                                 {
@@ -323,8 +330,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                                 }
                             ]
                         }
-                    } as TildaProgressiveRenderFileFormat, null, 2);
-                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, tildaProgressiveRenderFileText));
+                    }
+
+                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, JSON.stringify(fileContent, null, 2)));
                     if (errorWithWritingTildaProgressiveRenderFile) {
                         this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderFile.message}`);
                     }
@@ -383,11 +391,17 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                     const tildaProgressiveRenderFilePath = path.join(tildaStageDirPath, fallbackSourceRoute + '.progressiverender.json');
                     // ensure the directory exists
                     await fs.mkdir(path.dirname(tildaProgressiveRenderFilePath), { recursive: true });
-                    const tildaProgressiveRenderFileText = JSON.stringify({
+
+                    const headers: Record<string, string[]> = {};
+                    for (const [key, value] of Object.entries(meta.headers)) {
+                        headers[key] = [value];
+                    }
+                    headers['content-type'] = ['text/html; charset=utf-8'];
+
+                    const fileContent: TildaProgressiveRenderFileFormat = {
                         v1: {
-                            route: { pathRegex: routeRegex },
                             status: meta.status,
-                            headers: { ...meta.headers, 'content-type': 'text/html; charset=utf-8' },
+                            headers,
                             body: [
                                 { text: htmlFileText },
                                 {
@@ -405,8 +419,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                                 }
                             ]
                         }
-                    } as TildaProgressiveRenderFileFormat, null, 2);
-                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, tildaProgressiveRenderFileText));
+                    };
+
+                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, JSON.stringify(fileContent, null, 2)));
                     if (errorWithWritingTildaProgressiveRenderFile) {
                         this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderFile.message}`);
                     }
