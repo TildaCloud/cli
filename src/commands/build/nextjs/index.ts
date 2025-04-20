@@ -238,6 +238,16 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         await fs.rm(tildaStageDirPath, { recursive: true, force: true });
         await fs.mkdir(tildaStageDirPath, { recursive: true });
 
+        const [errorWithReadingConstants, constantsFileText] = await safely(fs.readFile(path.resolve(serverDir, 'node_modules', 'next', 'dist', 'lib', 'constants.js'), 'utf8'));
+        if (errorWithReadingConstants) {
+            this.error(`Error reading constants file: ${errorWithReadingConstants.message}`);
+        }
+        const usesNextResumeHeader = constantsFileText.includes('NEXT_RESUME_HEADER');
+
+        // check if .next/standalone/node_modules/next/dist/server/normalizers/request/postponed.js exists
+        const [errorWithCheckingPostponedFile, postponedFileStats] = await safely(fs.stat(path.resolve(serverDir, 'node_modules', 'next', 'dist', 'server', 'normalizers', 'request', 'postponed.js')));
+        const usesPostponedNormalizer = !errorWithCheckingPostponedFile && postponedFileStats.isFile();
+
         const inlineRoutingConfig: z.infer<typeof InlineRoutingConfigSchema> = {
             routes: []
         };
@@ -245,6 +255,10 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
         const featureFlags: string[] = [];
 
         if (flags.ppr === '15-canary-v1') {
+            if (!usesNextResumeHeader && !usesPostponedNormalizer) {
+                this.error('Next.js 15 canary PPR feature flag is enabled but Next.js version is not compatible.');
+            }
+
             featureFlags.push('nextjs-15-canary-ppr-v1');
             // Read prerender-manifest.json
             const [errorWithReadingPrerenderManifest, prerenderManifestText] = await safely(fs.readFile(path.resolve(serverDir, '.next', 'prerender-manifest.json'), 'utf8'));
@@ -262,12 +276,11 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                 this.error(`Error parsing prerender manifest: ${errorWithPrerenderManifest.message}`);
             }
 
-            for (const [, { renderingMode, srcRoute, dataRoute, experimentalPPR }] of Object.entries(prerenderManifest.routes)) {
-                if (renderingMode === 'PARTIALLY_STATIC') {
-                    if (!experimentalPPR) {
-                        this.error('Encountered a route that is partially static but does not have experimentalPPR enabled. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
-                    }
+            const relativeUrl = usesNextResumeHeader ? '$$requestRelativeUrl$$' : '$$requestRelativeUrlPrefixedWithNextPostponedResume$$';
+            const matchedPath = usesNextResumeHeader ? '$$requestPath$$' : '$$requestPathPrefixedWithNextPostponedResume$$';
 
+            for (const [, { srcRoute, renderingMode, dataRoute, experimentalPPR }] of Object.entries(prerenderManifest.routes)) {
+                if (renderingMode === 'PARTIALLY_STATIC' || experimentalPPR) {
                     if (!dataRoute) {
                         this.error('Encountered a route that is partially static but does not have a data route. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
                     }
@@ -317,11 +330,12 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                                 { text: htmlFileText },
                                 {
                                     remoteBody: {
-                                        relativeUrl: '$$requestRelativeUrl$$',
+                                        relativeUrl,
                                         forwardRequestHeaders: true,
                                         additionalHeaders: {
                                             'next-resume': '1',
-                                            'tilda-internal-next-matched-path': '$$requestPath$$',
+                                            'tilda-internal-next-matched-path': matchedPath,
+                                            'x-matched-path': matchedPath,
                                             'content-type': 'text/plain',
                                         },
                                         method: 'POST',
@@ -354,11 +368,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
             }
 
             for (const [, { renderingMode, experimentalPPR, fallbackSourceRoute, routeRegex }] of Object.entries(prerenderManifest.dynamicRoutes)) {
-                if (renderingMode === 'PARTIALLY_STATIC') {
-                    if (!experimentalPPR) {
-                        this.error('Encountered a route that is partially static but does not have experimentalPPR enabled. Please make sure that you\'re using the latest version Tilda CLI. If the issue persists, please contact support.');
-                    }
-
+                if (renderingMode === 'PARTIALLY_STATIC' || experimentalPPR) {
                     // Meta file for this route
                     const metaFilePath = path.join(serverDir, '.next', 'server', "app", fallbackSourceRoute + '.meta');
                     const [errorWithReadingMetaFile, metaFileText] = await safely(fs.readFile(metaFilePath, 'utf8'));
@@ -406,11 +416,12 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                                 { text: htmlFileText },
                                 {
                                     remoteBody: {
-                                        relativeUrl: '$$requestRelativeUrl$$',
+                                        relativeUrl,
                                         forwardRequestHeaders: true,
                                         additionalHeaders: {
                                             'next-resume': '1',
-                                            'tilda-internal-next-matched-path': '$$requestPath$$',
+                                            'tilda-internal-next-matched-path': matchedPath,
+                                            'x-matched-path': matchedPath,
                                             'content-type': 'text/plain',
                                         },
                                         method: 'POST',
