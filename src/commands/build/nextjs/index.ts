@@ -14,7 +14,7 @@ import { BaseCommand } from "../../../baseCommand.js";
 import { InlineRoutingConfigSchema, NextjsPrerenderManifestV4Schema, NextjsRouteMetaSchema, PackageLockJsonSchema } from "../../../lib/schemas.js";
 // @ts-ignore: TS6059
 // eslint-disable-next-line import/no-unresolved
-import { TildaProgressiveRenderFileFormat } from "@site/src/lib/schemas.js";
+import { TildaProgressiveRenderingFileFormat } from "@site/src/lib/schemas.js";
 import BuildCommand from '../index.js'
 import { type NextConfig } from 'next'
 import { z } from 'zod';
@@ -313,8 +313,8 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         this.error(`Error reading html file: ${errorWithReadingHtmlFile.message}`);
                     }
 
-                    // create a tilda progressive render file and place it in the .tilda/stage directory for this path
-                    const tildaProgressiveRenderFilePath = path.join(tildaStageDirPath, path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverender.json');
+                    // create a tilda progressive rendering file and place it in the .tilda/stage directory for this path
+                    const tildaProgressiveRenderingFilePath = path.join(tildaStageDirPath, path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverendering.json');
 
                     const headers: Record<string, string[]> = {};
                     for (const [key, value] of Object.entries(meta.headers)) {
@@ -322,7 +322,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                     }
                     headers['content-type'] = ['text/html; charset=utf-8'];
 
-                    const fileContent: TildaProgressiveRenderFileFormat = {
+                    const fileContent: TildaProgressiveRenderingFileFormat = {
                         v1: {
                             status: meta.status,
                             headers,
@@ -346,9 +346,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         }
                     }
 
-                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, JSON.stringify(fileContent, null, 2)));
-                    if (errorWithWritingTildaProgressiveRenderFile) {
-                        this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderFile.message}`);
+                    const [errorWithWritingTildaProgressiveRenderingFile] = await safely(() => fs.writeFile(tildaProgressiveRenderingFilePath, JSON.stringify(fileContent, null, 2)));
+                    if (errorWithWritingTildaProgressiveRenderingFile) {
+                        this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderingFile.message}`);
                     }
 
                     const prResponseHeaders: [string, string][] = [['tilda-progressive-render', '1'], ['content-type', 'application/json']];
@@ -361,7 +361,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         action: {
                             origin: 'static',
                             headers: prResponseHeaders,
-                            staticFileRelativePath: path.join(path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverender.json'),
+                            staticFileRelativePath: path.join(path.dirname(dataRoute), path.basename(dataRoute, path.extname(dataRoute)) + '.progressiverendering.json'),
                         },
                     })
                 }
@@ -398,9 +398,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                     }
 
                     // create a tilda progressive render file and place it in the .tilda/stage directory for this path
-                    const tildaProgressiveRenderFilePath = path.join(tildaStageDirPath, fallbackSourceRoute + '.progressiverender.json');
+                    const tildaProgressiveRenderingFilePath = path.join(tildaStageDirPath, fallbackSourceRoute + '.progressiverendering.json');
                     // ensure the directory exists
-                    await fs.mkdir(path.dirname(tildaProgressiveRenderFilePath), { recursive: true });
+                    await fs.mkdir(path.dirname(tildaProgressiveRenderingFilePath), { recursive: true });
 
                     const headers: Record<string, string[]> = {};
                     for (const [key, value] of Object.entries(meta.headers)) {
@@ -408,7 +408,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                     }
                     headers['content-type'] = ['text/html; charset=utf-8'];
 
-                    const fileContent: TildaProgressiveRenderFileFormat = {
+                    const fileContent: TildaProgressiveRenderingFileFormat = {
                         v1: {
                             status: meta.status,
                             headers,
@@ -432,9 +432,9 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         }
                     };
 
-                    const [errorWithWritingTildaProgressiveRenderFile] = await safely(() => fs.writeFile(tildaProgressiveRenderFilePath, JSON.stringify(fileContent, null, 2)));
-                    if (errorWithWritingTildaProgressiveRenderFile) {
-                        this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderFile.message}`);
+                    const [errorWithWritingTildaProgressiveRenderingFile] = await safely(() => fs.writeFile(tildaProgressiveRenderingFilePath, JSON.stringify(fileContent, null, 2)));
+                    if (errorWithWritingTildaProgressiveRenderingFile) {
+                        this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderingFile.message}`);
                     }
 
                     const prResponseHeaders: [string, string][] = [['tilda-progressive-render', '1'], ['content-type', 'application/json']];
@@ -447,7 +447,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         action: {
                             origin: 'static',
                             headers: prResponseHeaders,
-                            staticFileRelativePath: fallbackSourceRoute + '.progressiverender.json',
+                            staticFileRelativePath: fallbackSourceRoute + '.progressiverendering.json',
                         },
                     });
                 }

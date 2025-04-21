@@ -352,7 +352,7 @@ export default class Build extends BaseCommand<typeof Build> {
                                 } as const;
                             }
 
-                            if (fileAbsolutePath.endsWith('.tildaprogressiverender.json')) {
+                            if (fileAbsolutePath.endsWith('.progressiverendering.json')) {
                                 this.error(format("Stray", JSON.stringify(pathRelativeToStaticDir), "file should've been accounted for in inline routing config"));
                             }
 
