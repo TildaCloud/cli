@@ -38,7 +38,7 @@ export default class Build extends BaseCommand<typeof Build> {
     }
 
     async run(): Promise<void> {
-        const { args, flags } = await this.parse(Build)
+        const { flags } = await this.parse(Build)
 
         const projectDirPath = path.resolve(flags.projectDir);
         const serverDirPath = path.resolve(flags.serverDir);
