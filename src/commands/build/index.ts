@@ -32,8 +32,8 @@ export default class Build extends BaseCommand<typeof Build> {
         serverEntryFile: Flags.string({ description: 'Relative path to server entry file', required: true }),
         routingConfigJson: Flags.string({ description: 'Inline JSON of routing config', required: false, default: '{"routes":[]}' }),
         featureFlag: Flags.string({ description: 'Feature flag', required: false, multiple: true, }),
-        framework: Flags.string({ description: 'Framework name', required: true, }),
-        frameworkVersion: Flags.string({ description: 'Framework version', required: true, }),
+        framework: Flags.string({ description: 'Framework name', required: false, }),
+        frameworkVersion: Flags.string({ description: 'Framework version', required: false, }),
         preserveStage: Flags.boolean({ description: 'Keep the staging directory (.tilda/stage) intact', required: false, default: false }),
     }
 
