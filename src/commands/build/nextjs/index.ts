@@ -351,7 +351,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderingFile.message}`);
                     }
 
-                    const prResponseHeaders: [string, string][] = [['tilda-progressive-render', '1'], ['content-type', 'application/json']];
+                    const prResponseHeaders: [string, string][] = [['progressive-rendering-format', '1'], ['content-type', 'application/json']];
                     if (meta.headers['x-next-cache-tags']) {
                         prResponseHeaders.push(['x-next-cache-tags', meta.headers['x-next-cache-tags']]);
                     }
@@ -437,7 +437,7 @@ export default class BuildNextJs extends BaseCommand<typeof BuildNextJs> {
                         this.error(`Error writing tilda progressive render file: ${errorWithWritingTildaProgressiveRenderingFile.message}`);
                     }
 
-                    const prResponseHeaders: [string, string][] = [['tilda-progressive-render', '1'], ['content-type', 'application/json']];
+                    const prResponseHeaders: [string, string][] = [['progressive-rendering-format', '1'], ['content-type', 'application/json']];
                     if (meta.headers['x-next-cache-tags']) {
                         prResponseHeaders.push(['x-next-cache-tags', meta.headers['x-next-cache-tags']]);
                     }

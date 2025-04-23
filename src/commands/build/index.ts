@@ -327,10 +327,6 @@ export default class Build extends BaseCommand<typeof Build> {
                 framework: flags.framework,
                 frameworkVersion: flags.frameworkVersion,
                 routes: [
-                    ...(inlineRoutingConfig.routes.map(route => ({
-                        criteria: route.criteria,
-                        action: { ...route.action, ...(route.action.staticFileRelativePath && { originPath: route.action.staticFileRelativePath, staticFileRelativePath: undefined }) }
-                    } as const))),
                     ...(staticFiles
                         .map((entry): ZInfer<typeof TildaDeploymentMetadataSchema>['v2']['routes'][0] => {
                             const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
@@ -382,6 +378,10 @@ export default class Build extends BaseCommand<typeof Build> {
                             } as const;
                         })
                     ),
+                    ...(inlineRoutingConfig.routes.map(route => ({
+                        criteria: route.criteria,
+                        action: { ...route.action, ...(route.action.staticFileRelativePath && { originPath: route.action.staticFileRelativePath, staticFileRelativePath: undefined }) }
+                    } as const))),
                     ...(computeFiles.length > 0 ? [{
                         criteria: {
                             path: {
