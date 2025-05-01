@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.57.0 darwin-arm64 node-v20.18.2
+@tildacloud/cli/0.58.0 darwin-arm64 node-v20.18.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -85,7 +85,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/index.ts)_
 
 ## `tilda build astro`
 
@@ -110,7 +110,7 @@ DESCRIPTION
   Build an Astro project
 ```
 
-_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/astro/index.ts)_
+_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/astro/index.ts)_
 
 ## `tilda build nextjs`
 
@@ -137,7 +137,7 @@ DESCRIPTION
   Build Next.js project
 ```
 
-_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/nextjs/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/nextjs/index.ts)_
 
 ## `tilda build nuxt`
 
@@ -162,7 +162,7 @@ DESCRIPTION
   Build Nuxt project
 ```
 
-_See code: [src/commands/build/nuxt/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/nuxt/index.ts)_
+_See code: [src/commands/build/nuxt/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/nuxt/index.ts)_
 
 ## `tilda build qwik`
 
@@ -187,7 +187,7 @@ DESCRIPTION
   Build Qwik City project
 ```
 
-_See code: [src/commands/build/qwik/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/qwik/index.ts)_
+_See code: [src/commands/build/qwik/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/qwik/index.ts)_
 
 ## `tilda build static`
 
@@ -221,7 +221,7 @@ DESCRIPTION
   Build a static website
 ```
 
-_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/static/index.ts)_
+_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/static/index.ts)_
 
 ## `tilda build svelte`
 
@@ -246,7 +246,7 @@ DESCRIPTION
   Build Svelte project
 ```
 
-_See code: [src/commands/build/svelte/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/build/svelte/index.ts)_
+_See code: [src/commands/build/svelte/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/svelte/index.ts)_
 
 ## `tilda deploy`
 
@@ -272,7 +272,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/deploy/index.ts)_
 
 ## `tilda deployment-key create`
 
@@ -296,7 +296,7 @@ DESCRIPTION
   Create a deployment key
 ```
 
-_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/deployment-key/create/index.ts)_
+_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/deployment-key/create/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -337,7 +337,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -359,7 +359,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.57.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
