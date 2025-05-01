@@ -7,7 +7,7 @@ import * as fs from 'node:fs/promises';
 import JSZip from "jszip";
 import { safely } from "../../../lib/utils.js";
 import { BaseCommand } from "../../../baseCommand.js";
-import { TildaDeploymentMetadataSchema } from '../../../lib/schemas.js';
+import { InlineRoutingConfigSchema, TildaDeploymentMetadataSchema } from '../../../lib/schemas.js';
 
 const LOCK_FILES = [
     'package-lock.json',
@@ -30,18 +30,39 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
         }),
         rootStaticDir: Flags.string({
             description: 'Relative path to static files directory that will be served from root (/)',
-            required: true,
+            required: false,
+            multiple: true,
+        }),
+        underscoreNamedStaticDir: Flags.string({
+            description: 'Relative path to static files directory that will be served from relative path with "." replaced with "_"',
+            required: false
         }),
         skipAppBuild: Flags.boolean({
             description: 'Skip running build command',
             default: false,
         }),
+        routingConfigJson: Flags.string({
+            description: 'Inline JSON of routing config',
+            required: false,
+            default: '{"routes":[]}'
+        }),
+        preserveStage: Flags.boolean({
+            description: 'Keep the staging directory (.tilda/stage) intact',
+            required: false,
+            default: false
+        }),
+        framework: Flags.string({
+            description: 'Framework name',
+            required: false,
+        }),
+        frameworkVersion: Flags.string({
+            description: 'Framework version',
+            required: false,
+        }),
     }
 
-    private configFilePaths: undefined | { original: string, config: string };
-
     async run(): Promise<void> {
-        const { args, flags } = await this.parse(BuildStatic)
+        const { flags } = await this.parse(BuildStatic)
 
         const projectDirPath = path.resolve(flags.projectDir);
         this.log(`Building project at`, projectDirPath);
@@ -54,6 +75,10 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
         if (!projectDirStats.isDirectory()) {
             this.error(`Project directory is not a valid directory: ${projectDirPath}`);
         }
+
+        // Process static directories
+        const rootStaticDirPaths = flags.rootStaticDir?.map(dir => path.resolve(dir)) || [];
+        const underscoreNamedStaticDirPath = flags.underscoreNamedStaticDir ? path.resolve(flags.underscoreNamedStaticDir) : undefined;
 
         const buildCommand = flags.buildCommand;
         const buildCommandParts = buildCommand.split(' ');
@@ -96,42 +121,103 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
 
         this.log('Building Tilda package');
 
-        const rootStaticDirPath = path.resolve(flags.rootStaticDir);
-
-        // check if root static dir exists
-        const [errorWithRootStaticDirStats, rootStaticDirStats] = await safely<Stats, {
-            code?: string,
-            message?: string
-        }>(fs.stat(rootStaticDirPath));
-        if (errorWithRootStaticDirStats && errorWithRootStaticDirStats.code !== 'ENOENT') {
-            this.error(`Error checking root static dir: ${errorWithRootStaticDirStats.message}`);
+        // Check and validate static directories
+        if (rootStaticDirPaths.length) {
+            for (const rootStaticDirPath of rootStaticDirPaths) {
+                // ensure the root static directory exists
+                const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(rootStaticDirPath));
+                if (errorWithCheckingStaticDirStats) {
+                    this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
+                }
+                if (!staticDirStats.isDirectory()) {
+                    this.error(`Static directory does not exist: ${rootStaticDirPath}`);
+                }
+            }
+        } else if (!underscoreNamedStaticDirPath) {
+            this.error('At least one static directory (rootStaticDir or underscoreNamedStaticDir) must be provided');
         }
-        if (!rootStaticDirStats?.isDirectory()) {
-            this.error(`Root static dir is not a valid directory: ${rootStaticDirPath}`);
+
+        // ensure the underscore named static directory exists
+        if (underscoreNamedStaticDirPath) {
+            const [errorWithCheckingStaticDirStats, staticDirStats] = await safely(fs.stat(underscoreNamedStaticDirPath));
+            if (errorWithCheckingStaticDirStats) {
+                this.error(`Error checking static directory: ${errorWithCheckingStaticDirStats.message}`);
+            }
+            if (!staticDirStats.isDirectory()) {
+                this.error(`Static directory does not exist: ${underscoreNamedStaticDirPath}`);
+            }
         }
 
-        const tildaBuildStaticDirPath = path.join(projectDirPath, '.tilda', 'static');
-        const tildaDebugDirPath = path.join(projectDirPath, '.tilda', 'debug');
+        // create .tilda directory if it doesn't exist
         const tildaDirPath = path.join(projectDirPath, '.tilda');
+        await fs.mkdir(tildaDirPath, { recursive: true });
 
-        // remove the tilda dir if it exists
-        await safely(fs.rm(tildaDirPath, { recursive: true, force: true }));
-
-        // create the tilda dir
-        const [errorWithCreatingTildaDir] = await safely(fs.mkdir(tildaDirPath, {
+        // remove the .tilda/build directory if it exists
+        const tildaBuildDirPath = path.join(tildaDirPath, 'build');
+        const [errorWithRemovingTildaBuildDir] = await safely(fs.rm(tildaBuildDirPath, {
             recursive: true,
+            force: true,
         }));
-        if (errorWithCreatingTildaDir) {
-            this.error(`Error creating tilda dir: ${errorWithCreatingTildaDir.message}`);
+        if (errorWithRemovingTildaBuildDir) {
+            this.error(`Error removing .tilda/build directory: ${errorWithRemovingTildaBuildDir.message}`);
         }
 
-        this.debug('Copying root static files directories');
-        const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {
-            recursive: true,
-            verbatimSymlinks: true,
-        }));
-        if (errorWithCopyingStaticFilesDir) {
-            this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+        // create .tilda/stage directory if it doesn't exist or if preserveStage flag is false
+        const tildaStageDirPath = path.join(tildaDirPath, 'stage');
+        if (!flags.preserveStage) {
+            const [errorWithRemovingTildaStageDir] = await safely(fs.rm(tildaStageDirPath, {
+                recursive: true,
+                force: true,
+            }));
+            if (errorWithRemovingTildaStageDir) {
+                this.error(`Error removing .tilda/stage directory: ${errorWithRemovingTildaStageDir.message}`);
+            }
+        }
+        await fs.mkdir(tildaStageDirPath, { recursive: true });
+
+        // create directories for static files and debug files
+        const tildaBuildStaticDirPath = path.join(tildaBuildDirPath, 'static');
+        const tildaDebugDirPath = path.join(tildaBuildDirPath, 'debug');
+
+        await fs.mkdir(tildaBuildStaticDirPath, { recursive: true });
+
+        // Copy static directories
+        if (rootStaticDirPaths.length) {
+            if (rootStaticDirPaths.length > 1) {
+                const existingFilePaths: string[] = [];
+                for (const rootStaticDirPath of rootStaticDirPaths) {
+                    const filePathsInDir = await fs.readdir(rootStaticDirPath, { recursive: true });
+                    for (const filePath of filePathsInDir) {
+                        if (!existingFilePaths.includes(filePath)) {
+                            existingFilePaths.push(filePath);
+                        } else {
+                            this.log(`Static file ${filePath} is present in multiple root static directories. It will be overwritten.`);
+                        }
+                    }
+                }
+            }
+            for (const rootStaticDirPath of rootStaticDirPaths) {
+                this.debug('Copying root static files directories');
+                const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(rootStaticDirPath, tildaBuildStaticDirPath, {
+                    recursive: true,
+                    verbatimSymlinks: true,
+                }));
+                if (errorWithCopyingStaticFilesDir) {
+                    this.error(`Error copying static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+                }
+            }
+        }
+
+        if (underscoreNamedStaticDirPath) {
+            this.debug('Copying underscore named static files directories');
+            const dirName = path.relative(projectDirPath, underscoreNamedStaticDirPath).replace('.', '_');
+            const [errorWithCopyingStaticFilesDir] = await safely(fs.cp(underscoreNamedStaticDirPath, path.join(tildaBuildStaticDirPath, dirName), {
+                recursive: true,
+                verbatimSymlinks: true,
+            }));
+            if (errorWithCopyingStaticFilesDir) {
+                this.error(`Error copying underscore named static files directory: ${errorWithCopyingStaticFilesDir.message}`);
+            }
         }
 
         // find the available lock files
@@ -148,6 +234,9 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
             this.error(`Lock file not found: ${LOCK_FILES.join(', ')}`);
         }
 
+        // Create debug directory
+        await fs.mkdir(tildaDebugDirPath, { recursive: true });
+
         // copy the lock files to the debug directory
         for (const lockFileInfo of lockFilesInfo) {
             if (!lockFileInfo) {
@@ -162,90 +251,112 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
             }
         }
 
-        const [errorWithReadingFiles, filesInTildaDir] = await safely(fs.readdir(path.join(projectDirPath, '.tilda'), {
+        // Parse routing config
+        const [errorWithParsingInlineConfigAsJson, jsonOfInlineConfig] = await safely(() => JSON.parse(flags.routingConfigJson));
+        if (errorWithParsingInlineConfigAsJson) {
+            this.error(`Error parsing inline routing config: ${errorWithParsingInlineConfigAsJson.message}`);
+        }
+
+        const [errorWithParsingInlineRoutingConfig, inlineRoutingConfig] = await safely(InlineRoutingConfigSchema.parseAsync(jsonOfInlineConfig))
+        if (errorWithParsingInlineRoutingConfig) {
+            this.error(`Error parsing inline routing config: ${errorWithParsingInlineRoutingConfig.message}`);
+        }
+
+        // Read files in the .tilda/build directory
+        const [errorWithReadingFiles, filesInTildaBuildDir] = await safely(fs.readdir(tildaBuildDirPath, {
             recursive: true,
             withFileTypes: true,
         }));
         if (errorWithReadingFiles) {
-            this.error(`Error reading files in .tilda directory: ${errorWithReadingFiles.message}`);
+            this.error(`Error reading files in .tilda/build directory: ${errorWithReadingFiles.message}`);
         }
 
+        // Generate static file routes
+        const staticFileRoutes = filesInTildaBuildDir
+            .filter((entry) => {
+                const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
+                const relativePath = path.relative(tildaBuildDirPath, fileAbsolutePath);
+                return entry.isFile() && relativePath.startsWith('static/');
+            })
+            .map((entry): ZInfer<typeof TildaDeploymentMetadataSchema>['v2']['routes'][0] => {
+                const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
+                const pathRelativeToStaticDir = path.relative(path.join(tildaBuildDirPath, 'static'), fileAbsolutePath);
+
+                const routePath = path.join('/', pathRelativeToStaticDir);
+
+                if (path.basename(fileAbsolutePath) === 'index.html') {
+                    return {
+                        criteria: {
+                            path: {
+                                oneOf: [routePath, routePath.replace(/\/index\.html$/, ''), routePath.replace(/\/index\.html$/, '/')],
+                            }
+                        },
+                        action: {
+                            origin: 'static',
+                            originPath: routePath,
+                        }
+                    };
+                }
+
+                if (path.extname(fileAbsolutePath) === '.html') {
+                    return {
+                        criteria: {
+                            path: {
+                                oneOf: [routePath, routePath.replace(/\.html$/, '')],
+                            }
+                        },
+                        action: {
+                            origin: 'static',
+                            originPath: routePath,
+                        }
+                    };
+                }
+
+                return {
+                    criteria: {
+                        path: {
+                            exact: routePath,
+                        }
+                    },
+                    action: {
+                        origin: 'static',
+                    }
+                };
+            });
+
+        // Prepare deployment metadata
         const buildMetadata: ZInfer<typeof TildaDeploymentMetadataSchema> = {
             v2: {
                 nodeJsVersion: process.version,
                 routes: [
-                    ...(filesInTildaDir
-                        .filter((entry) => {
-                            const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
-                            const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
-                            return entry.isFile() && relativePath.startsWith('static/');
-                        })
-                        .map((entry): ZInfer<typeof TildaDeploymentMetadataSchema>['v2']['routes'][0] => {
-                            const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
-                            const pathRelativeToStaticDir = path.relative(path.join(tildaDirPath, 'static'), fileAbsolutePath);
-
-                            const routePath = path.join('/', pathRelativeToStaticDir);
-
-                            if (path.basename(fileAbsolutePath) === 'index.html') {
-                                return {
-                                    criteria: {
-                                        path: {
-                                            oneOf: [routePath, routePath.replace(/\/index\.html$/, ''), routePath.replace(/\/index\.html$/, '/')],
-                                        }
-                                    },
-                                    action: {
-                                        origin: 'static',
-                                        originPath: routePath,
-                                    }
-                                }
-                            }
-
-                            if (path.extname(fileAbsolutePath) === '.html') {
-                                return {
-                                    criteria: {
-                                        path: {
-                                            oneOf: [routePath, routePath.replace(/\.html$/, '')],
-                                        }
-                                    },
-                                    action: {
-                                        origin: 'static',
-                                        originPath: routePath,
-                                    }
-                                }
-                            }
-
-                            return {
-                                criteria: {
-                                    path: {
-                                        exact: routePath,
-                                    }
-                                },
-                                action: {
-                                    origin: 'static',
-                                }
-                            }
-                        })
-                    ),
+                    ...staticFileRoutes,
+                    ...inlineRoutingConfig.routes,
                 ],
+                framework: flags.framework,
+                frameworkVersion: flags.frameworkVersion,
             }
         };
-        const [errorWithWritingBuildMetadata] = await safely(fs.writeFile(path.join(tildaDirPath, 'metadata.json'), JSON.stringify(buildMetadata, null, 2)));
+
+        // Write metadata to .tilda/build directory
+        const metadataPath = path.join(tildaBuildDirPath, 'metadata.json');
+        const [errorWithWritingBuildMetadata] = await safely(fs.writeFile(metadataPath, JSON.stringify(buildMetadata, null, 2)));
         if (errorWithWritingBuildMetadata) {
             this.error(`Error writing build metadata: ${errorWithWritingBuildMetadata.message}`);
         }
 
         this.log('Tilda package built');
 
-        // zip everything in .tilda directory
+        // Create package.zip in .tilda/build directory
         const zip = new JSZip();
 
-        for (const entry of filesInTildaDir) {
+        // Add all files from .tilda/build to the zip
+        for (const entry of filesInTildaBuildDir) {
             if (entry.isDirectory()) {
                 continue;
             }
 
             const fileAbsolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
-            const relativePath = path.relative(tildaDirPath, fileAbsolutePath);
+            const relativePath = path.relative(tildaBuildDirPath, fileAbsolutePath);
 
             if (entry.isSymbolicLink()) {
                 const [errorWithReadingLink, linkTarget] = await safely(fs.readlink(fileAbsolutePath));
@@ -266,8 +377,11 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
 
             zip.file(relativePath, fileContents);
         }
+
+        // Add metadata.json to the root of the zip
         zip.file('metadata.json', Buffer.from(JSON.stringify(buildMetadata, null, 2)));
 
+        // Generate the zip file
         const [errorWithWritingZipFile, zipBuffer] = await safely(zip.generateAsync({
             platform: 'UNIX',
             type: 'nodebuffer',
@@ -280,10 +394,13 @@ export default class BuildStatic extends BaseCommand<typeof BuildStatic> {
             this.error(`Error writing zip file: ${errorWithWritingZipFile.message}`);
         }
 
-        const zipFilePath = path.join(tildaDirPath, 'package.zip');
+        // Write the zip file to .tilda/build/package.zip
+        const zipFilePath = path.join(tildaBuildDirPath, 'package.zip');
         const [errorWithWritingZipBuffer] = await safely(fs.writeFile(zipFilePath, zipBuffer));
         if (errorWithWritingZipBuffer) {
             this.error(`Error writing zip buffer: ${errorWithWritingZipBuffer.message}`);
         }
+
+        this.log('Static build complete');
     }
 }
