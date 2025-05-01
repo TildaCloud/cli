@@ -338,7 +338,7 @@ export default class Build extends BaseCommand<typeof Build> {
                                 return {
                                     criteria: {
                                         path: {
-                                            oneOf: [routePath, routePath.replace(/\/index\.html$/, ''), routePath.replace(/\/index\.html$/, '/')],
+                                            oneOf: Array.from(new Set([routePath, routePath.replace(/\/index\.html$/, ''), routePath.replace(/\/index\.html$/, '/')].filter(Boolean))),
                                         }
                                     },
                                     action: {
@@ -356,7 +356,7 @@ export default class Build extends BaseCommand<typeof Build> {
                                 return {
                                     criteria: {
                                         path: {
-                                            oneOf: [routePath, routePath.replace(/\.html$/, '')],
+                                            oneOf: Array.from(new Set([routePath, routePath.replace(/\.html$/, '')].filter(Boolean))),
                                         }
                                     },
                                     action: {
