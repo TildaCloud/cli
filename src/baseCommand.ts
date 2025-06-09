@@ -31,6 +31,11 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             required: false,
             env: 'TILDA_CLI_INLINE_IDENTITY_JSON'
         }),
+        authToken: Flags.string({
+            description: 'Private key config. Must be of type { privateKey: string, keyId: number } encoded in base64',
+            required: false,
+            env: 'TILDA_CLI_AUTH_TOKEN'
+        }),
     }
 
     protected flags!: Flags<T>
@@ -111,6 +116,21 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             this.error(`Error getting validating inline identity: ${errorWithInlineIdentityJson.message}`);
         }
 
+        const [errorWithDecodingAuthToken, decodedAuthToken] = await safely(() => Buffer.from(this.flags.authToken!, 'base64url').toString('utf8'));
+        if (this.flags.authToken && errorWithDecodingAuthToken) {
+            this.error(`Error decoding authToken: ${errorWithDecodingAuthToken.message}`);
+        }
+
+        const [errorWithParsingAuthToken, authTokenJson] = await safely(() => JSON.parse(decodedAuthToken!));
+        if (this.flags.authToken && errorWithParsingAuthToken) {
+            this.error(`Error parsing authToken JSON: ${errorWithParsingAuthToken.message}`);
+        }
+
+        const [errorWithAuthToken, authTokenIdentity] = await safely(InlineIdentityJsonSchema.parseAsync(authTokenJson));
+        if (this.flags.authToken && errorWithAuthToken) {
+            this.error(`Error getting validating authToken identity: ${errorWithAuthToken.message}`);
+        }
+
         if (identity) {
             // read the private key
             const privateKeyPath = path.resolve(this.config.configDir, [encodeURIComponent(flags.apiOrigin), identity.userId, 'pem'].join('.'));
@@ -164,6 +184,17 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             }
 
             const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, inlineIdentity.keyId);
+            this.apiClient = trpcClient;
+        } else if (authTokenIdentity) {
+            const [errorWithCreatingPrivateKey, privateKey] = await safely(() => crypto.createPrivateKey({
+                key: authTokenIdentity.privateKey,
+                format: 'pem'
+            }));
+            if (errorWithCreatingPrivateKey) {
+                this.error(`Error creating private key from authToken: ${errorWithCreatingPrivateKey.message}`);
+            }
+
+            const trpcClient = getTrpcClient(flags.apiOrigin, privateKey, authTokenIdentity.keyId);
             this.apiClient = trpcClient;
         }
     }
