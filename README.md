@@ -20,7 +20,7 @@ $ npm install -g @tildacloud/cli
 $ tilda COMMAND
 running command...
 $ tilda (--version)
-@tildacloud/cli/0.58.0 darwin-arm64 node-v20.18.2
+@tildacloud/cli/0.59.0 darwin-arm64 node-v20.18.2
 $ tilda --help [COMMAND]
 USAGE
   $ tilda COMMAND
@@ -59,12 +59,14 @@ Build the application
 ```
 USAGE
   $ tilda build --apiOrigin <value> --serverDir <value> --projectDir <value> --serverEntryFile <value>
-    [--json] [--inlineIdentityJson <value>] [--rootStaticDir <value>...] [--underscoreNamedStaticDir <value>]
-    [--routingConfigJson <value>] [--featureFlag <value>...] [--framework <value>] [--frameworkVersion <value>]
-    [--preserveStage]
+    [--json] [--inlineIdentityJson <value>] [--authToken <value>] [--rootStaticDir <value>...]
+    [--underscoreNamedStaticDir <value>] [--routingConfigJson <value>] [--featureFlag <value>...] [--framework <value>]
+    [--frameworkVersion <value>] [--preserveStage]
 
 FLAGS
   --apiOrigin=<value>                 (required) [default: https://tilda.net] API origin
+  --authToken=<value>                 Private key config. Must be of type { privateKey: string, keyId: number } encoded
+                                      in base64
   --featureFlag=<value>...            Feature flag
   --framework=<value>                 Framework name
   --frameworkVersion=<value>          Framework version
@@ -85,7 +87,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/index.ts)_
+_See code: [src/commands/build/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/index.ts)_
 
 ## `tilda build astro`
 
@@ -94,10 +96,12 @@ Build an Astro project
 ```
 USAGE
   $ tilda build astro --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
-    [--inlineIdentityJson <value>]
+    [--inlineIdentityJson <value>] [--authToken <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --buildCommand=<value>        (required) [default: npm run build] Astro build command
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
@@ -110,7 +114,7 @@ DESCRIPTION
   Build an Astro project
 ```
 
-_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/astro/index.ts)_
+_See code: [src/commands/build/astro/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/astro/index.ts)_
 
 ## `tilda build nextjs`
 
@@ -119,10 +123,12 @@ Build Next.js project
 ```
 USAGE
   $ tilda build nextjs --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
-    [--inlineIdentityJson <value>] [--ppr 15-canary-v1]
+    [--inlineIdentityJson <value>] [--authToken <value>] [--ppr 15-canary-v1]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --buildCommand=<value>        (required) [default: npm run build] Next.js build command
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --ppr=<option>                Enable Next.js Partial Prerendering (PPR)
@@ -137,7 +143,7 @@ DESCRIPTION
   Build Next.js project
 ```
 
-_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/nextjs/index.ts)_
+_See code: [src/commands/build/nextjs/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/nextjs/index.ts)_
 
 ## `tilda build nuxt`
 
@@ -146,10 +152,12 @@ Build Nuxt project
 ```
 USAGE
   $ tilda build nuxt --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
-    [--inlineIdentityJson <value>]
+    [--inlineIdentityJson <value>] [--authToken <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --buildCommand=<value>        (required) [default: npm run build] Nuxt build command
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
@@ -162,7 +170,7 @@ DESCRIPTION
   Build Nuxt project
 ```
 
-_See code: [src/commands/build/nuxt/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/nuxt/index.ts)_
+_See code: [src/commands/build/nuxt/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/nuxt/index.ts)_
 
 ## `tilda build qwik`
 
@@ -171,10 +179,12 @@ Build Qwik City project
 ```
 USAGE
   $ tilda build qwik --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
-    [--inlineIdentityJson <value>]
+    [--inlineIdentityJson <value>] [--authToken <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --buildCommand=<value>        (required) [default: npm run build] Qwik City build command
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
@@ -187,7 +197,7 @@ DESCRIPTION
   Build Qwik City project
 ```
 
-_See code: [src/commands/build/qwik/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/qwik/index.ts)_
+_See code: [src/commands/build/qwik/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/qwik/index.ts)_
 
 ## `tilda build static`
 
@@ -196,11 +206,14 @@ Build a static website
 ```
 USAGE
   $ tilda build static --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
-    [--inlineIdentityJson <value>] [--rootStaticDir <value>...] [--underscoreNamedStaticDir <value>] [--skipAppBuild]
-    [--routingConfigJson <value>] [--preserveStage] [--framework <value>] [--frameworkVersion <value>]
+    [--inlineIdentityJson <value>] [--authToken <value>] [--rootStaticDir <value>...] [--underscoreNamedStaticDir
+    <value>] [--skipAppBuild] [--routingConfigJson <value>] [--preserveStage] [--framework <value>] [--frameworkVersion
+    <value>]
 
 FLAGS
   --apiOrigin=<value>                 (required) [default: https://tilda.net] API origin
+  --authToken=<value>                 Private key config. Must be of type { privateKey: string, keyId: number } encoded
+                                      in base64
   --buildCommand=<value>              (required) [default: npm run build] Application build command
   --framework=<value>                 Framework name
   --frameworkVersion=<value>          Framework version
@@ -221,7 +234,7 @@ DESCRIPTION
   Build a static website
 ```
 
-_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/static/index.ts)_
+_See code: [src/commands/build/static/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/static/index.ts)_
 
 ## `tilda build svelte`
 
@@ -230,10 +243,12 @@ Build Svelte project
 ```
 USAGE
   $ tilda build svelte --apiOrigin <value> --projectDir <value> --buildCommand <value> [--json]
-    [--inlineIdentityJson <value>]
+    [--inlineIdentityJson <value>] [--authToken <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --buildCommand=<value>        (required) [default: npm run build] Svelte build command
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --projectDir=<value>          (required) [default: /Users/raeesbhatti/Projects/TildaCloud/cli] Relative path project
@@ -246,7 +261,7 @@ DESCRIPTION
   Build Svelte project
 ```
 
-_See code: [src/commands/build/svelte/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/build/svelte/index.ts)_
+_See code: [src/commands/build/svelte/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/build/svelte/index.ts)_
 
 ## `tilda deploy`
 
@@ -255,10 +270,12 @@ Build the application
 ```
 USAGE
   $ tilda deploy --apiOrigin <value> --projectDir <value> --project <value> --site <value> --runtime <value>
-    [--json] [--inlineIdentityJson <value>]
+    [--json] [--inlineIdentityJson <value>] [--authToken <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --project=<value>             (required) Project slug
   --projectDir=<value>          (required) [default: .] Relative path to project directory
@@ -272,7 +289,7 @@ DESCRIPTION
   Build the application
 ```
 
-_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/deploy/index.ts)_
+_See code: [src/commands/deploy/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/deploy/index.ts)_
 
 ## `tilda deployment-key create`
 
@@ -280,11 +297,13 @@ Create a deployment key
 
 ```
 USAGE
-  $ tilda deployment-key create --apiOrigin <value> --project <value> [--json] [--inlineIdentityJson <value>] [--site
-    <value>]
+  $ tilda deployment-key create --apiOrigin <value> --project <value> [--json] [--inlineIdentityJson <value>] [--authToken
+    <value>] [--site <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
   --project=<value>             (required) Project slug
   --site=<value>                Site slug
@@ -296,7 +315,7 @@ DESCRIPTION
   Create a deployment key
 ```
 
-_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/deployment-key/create/index.ts)_
+_See code: [src/commands/deployment-key/create/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/deployment-key/create/index.ts)_
 
 ## `tilda help [COMMAND]`
 
@@ -324,10 +343,12 @@ Log in to Tilda
 
 ```
 USAGE
-  $ tilda login --apiOrigin <value> [--json] [--inlineIdentityJson <value>]
+  $ tilda login --apiOrigin <value> [--json] [--inlineIdentityJson <value>] [--authToken <value>]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
 
 GLOBAL FLAGS
@@ -337,7 +358,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/login/index.ts)_
+_See code: [src/commands/login/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/login/index.ts)_
 
 ## `tilda logout`
 
@@ -345,10 +366,12 @@ Log in to Tilda
 
 ```
 USAGE
-  $ tilda logout --apiOrigin <value> [--json] [--inlineIdentityJson <value>] [--force]
+  $ tilda logout --apiOrigin <value> [--json] [--inlineIdentityJson <value>] [--authToken <value>] [--force]
 
 FLAGS
   --apiOrigin=<value>           (required) [default: https://tilda.net] API origin
+  --authToken=<value>           Private key config. Must be of type { privateKey: string, keyId: number } encoded in
+                                base64
   --force                       Force logout
   --inlineIdentityJson=<value>  Private key config. Must be of type { privateKey: string, keyId: number }
 
@@ -359,7 +382,7 @@ DESCRIPTION
   Log in to Tilda
 ```
 
-_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.58.0/src/commands/logout/index.ts)_
+_See code: [src/commands/logout/index.ts](https://github.com/TildaCloud/cli/blob/v0.59.0/src/commands/logout/index.ts)_
 
 ## `tilda plugins`
 
